@@ -40,6 +40,10 @@ class SubmitAnswer
             throw GameException::roundClosed();
         }
 
+        if ($round->isPending()) {
+            throw GameException::roundNotStarted();
+        }
+
         if ($round->hasExpired()) {
             $this->revealRound->handle($round);
 

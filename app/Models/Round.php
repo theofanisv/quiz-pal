@@ -16,6 +16,13 @@ class Round extends Model
     use HasFactory;
 
     /**
+     * Seconds between scheduling a round and showing its question. The buffer lets every
+     * device receive the broadcast first, so the question appears on all screens at the
+     * same server instant and the speed bonus is fair.
+     */
+    public const int START_DELAY_SECONDS = 3;
+
+    /**
      * Millisecond precision so that speed scoring is fair.
      */
     protected $dateFormat = self::DATE_FORMAT;
@@ -60,9 +67,28 @@ class Round extends Model
         return $this->hasMany(Answer::class);
     }
 
-    public function hasStarted(): bool
+    /**
+     * Whether the round has been scheduled: the question has been shown or is about to be.
+     */
+    public function isScheduled(): bool
     {
         return $this->started_at !== null;
+    }
+
+    /**
+     * Whether the round is scheduled but its question is not on screen yet.
+     */
+    public function isPending(): bool
+    {
+        return $this->started_at !== null && now()->lessThan($this->started_at);
+    }
+
+    /**
+     * Whether the question is on screen (the start moment has passed).
+     */
+    public function hasStarted(): bool
+    {
+        return $this->started_at !== null && now()->greaterThanOrEqualTo($this->started_at);
     }
 
     public function isRevealed(): bool
@@ -71,11 +97,23 @@ class Round extends Model
     }
 
     /**
-     * Whether players can still submit answers.
+     * Whether players can submit answers right now: shown, not yet revealed.
      */
     public function isOpen(): bool
     {
         return $this->hasStarted() && ! $this->isRevealed();
+    }
+
+    /**
+     * Whole seconds until the question is shown (never negative).
+     */
+    public function secondsUntilStart(): int
+    {
+        if ($this->started_at === null) {
+            return 0;
+        }
+
+        return max(0, (int) ceil(now()->diffInMilliseconds($this->started_at, false) / 1000));
     }
 
     /**

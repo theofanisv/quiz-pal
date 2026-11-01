@@ -29,6 +29,11 @@ class GameException extends RuntimeException
         return new self(__('Only the room admin can do that.'));
     }
 
+    public static function liveUpdatesUnavailable(): self
+    {
+        return new self(__('Live updates are unavailable, so the game cannot start right now.'));
+    }
+
     public static function notEveryoneReady(): self
     {
         return new self(__('Everyone has to be ready before the game can start.'));
@@ -37,6 +42,11 @@ class GameException extends RuntimeException
     public static function notEnoughQuestions(int $available): self
     {
         return new self(__('Only :count questions are available for the chosen categories. Choose more categories or fewer rounds.', ['count' => $available]));
+    }
+
+    public static function roundNotStarted(): self
+    {
+        return new self(__('The question has not been shown yet.'));
     }
 
     public static function roundClosed(): self

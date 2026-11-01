@@ -40,3 +40,20 @@ it('is open only between start and reveal', function () {
         ->and(Round::factory()->started()->create()->isOpen())->toBeTrue()
         ->and(Round::factory()->revealed()->create()->isOpen())->toBeFalse();
 });
+
+it('is pending until the scheduled start moment, then open', function () {
+    freezeTime();
+    $round = Round::factory()->pending(20)->create();
+
+    expect($round->isPending())->toBeTrue()
+        ->and($round->isOpen())->toBeFalse()
+        ->and($round->secondsUntilStart())->toBe(3);
+
+    travel(3)->seconds();
+
+    expect($round->isPending())->toBeFalse()
+        ->and($round->hasStarted())->toBeTrue()
+        ->and($round->isOpen())->toBeTrue()
+        ->and($round->secondsUntilStart())->toBe(0)
+        ->and($round->secondsLeft())->toBe(20);
+});

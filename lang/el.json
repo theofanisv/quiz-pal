@@ -43,6 +43,8 @@
     "Waiting for :name to start the game.": "Περιμένουμε τον/την :name να ξεκινήσει το παιχνίδι.",
     "Round :current of :total": "Γύρος :current από :total",
     "Time left": "Χρόνος",
+    "Get ready…": "Ετοιμάσου…",
+    "The question has not been shown yet.": "Η ερώτηση δεν έχει εμφανιστεί ακόμα.",
     "Scores": "Σκορ",
     "Who has answered": "Ποιοι έχουν απαντήσει",
     "Answered": "Απάντησε",
@@ -70,6 +72,9 @@
     "The room admin cannot be removed.": "Ο διαχειριστής του δωματίου δεν μπορεί να αφαιρεθεί.",
     "You are not a player in this room.": "Δεν είσαι παίκτης σε αυτό το δωμάτιο.",
     "That name is already taken in this room.": "Αυτό το όνομα χρησιμοποιείται ήδη σε αυτό το δωμάτιο.",
+    "Live updates are unavailable, so the game cannot start right now.": "Οι ζωντανές ενημερώσεις δεν είναι διαθέσιμες, οπότε το παιχνίδι δεν μπορεί να ξεκινήσει αυτή τη στιγμή.",
+    "Live updates are unavailable": "Οι ζωντανές ενημερώσεις δεν είναι διαθέσιμες",
+    "The game cannot start until the live update server (Reverb) is back. Players can still join and get ready.": "Το παιχνίδι δεν μπορεί να ξεκινήσει μέχρι να επανέλθει ο διακομιστής ζωντανών ενημερώσεων (Reverb). Οι παίκτες μπορούν να μπουν και να δηλώσουν έτοιμοι.",
     "rounds": "γύροι",
     "seconds per question": "δευτερόλεπτα ανά ερώτηση",
     "categories": "κατηγορίες"

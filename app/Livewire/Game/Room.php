@@ -17,6 +17,7 @@ use App\Exceptions\GameException;
 use App\Models\Category;
 use App\Models\Player;
 use App\Models\Room as RoomModel;
+use App\Support\LiveUpdates;
 use Closure;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -195,7 +196,7 @@ class Room extends Component
         $trackPresence->left($this->room, (int) $member['id']);
     }
 
-    public function render(): View
+    public function render(LiveUpdates $liveUpdates): View
     {
         $this->room->refresh();
 
@@ -214,6 +215,7 @@ class Room extends Component
             'myAnswer' => $player !== null ? $answers->get($player->id) : null,
             'allCategories' => Category::query()->orderBy('sort_order')->orderBy('name_en')->get(),
             'shareUrl' => route('rooms.show', $this->room),
+            'liveUpdatesAvailable' => ! $this->room->isInLobby() || $liveUpdates->isAvailable(),
         ])->title(__('Room :code', ['code' => $this->room->code]));
     }
 

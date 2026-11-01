@@ -12,7 +12,7 @@ The app and the whole question bank are available in **English and Greek**; ever
 - Timed rounds: everyone sees that someone has answered but not what they chose, then the choices and the correct answer are revealed when everyone has answered or the timer runs out
 - Speed-based scoring: a correct answer is worth 1000 points when instant and 500 at the buzzer; wrong answers score nothing
 - Final leaderboard and "play again" with the same players
-- Live updates through [Laravel Reverb](https://reverb.laravel.com) WebSockets, with polling as a safety net
+- Live updates through [Laravel Reverb](https://reverb.laravel.com) WebSockets. Reverb is mandatory: the lobby refuses to start a game while its server is down, and every page also polls every 10 seconds as a safety net for dropped connections
 - 300 curated questions across 10 categories, stored as bilingual JSON files and importable with one command
 
 ## How to play

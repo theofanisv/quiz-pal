@@ -103,6 +103,15 @@
         @endif
     </flux:card>
 
+    @unless ($liveUpdatesAvailable)
+        <flux:callout
+            variant="danger"
+            icon="exclamation-triangle"
+            :heading="__('Live updates are unavailable')"
+            :text="__('The game cannot start until the live update server (Reverb) is back. Players can still join and get ready.')"
+        />
+    @endunless
+
     <div class="flex flex-col gap-3">
         <flux:button
             wire:click="toggleReady"
@@ -121,7 +130,7 @@
                 color="green"
                 icon="play"
                 class="w-full"
-                :disabled="! $everyoneReady"
+                :disabled="! $everyoneReady || ! $liveUpdatesAvailable"
                 data-test="start-button"
             >
                 {{ __('Start game') }}

@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Event;
 
 use function Pest\Laravel\freezeSecond;
 
-it('opens the next round after the current one is revealed', function () {
+it('schedules the next round a few seconds ahead after the current one is revealed', function () {
     freezeSecond();
     $room = Room::factory()->playing(1)->withAdmin()->create(['total_rounds' => 2, 'seconds_per_question' => 10]);
     Round::factory()->for($room)->revealed()->create(['round_number' => 1]);
@@ -21,8 +21,8 @@ it('opens the next round after the current one is revealed', function () {
     app(AdvanceRound::class)->handle($room, $room->admin);
 
     expect($room->fresh()->current_round)->toBe(2)
-        ->and($next->fresh()->started_at->equalTo(now()))->toBeTrue()
-        ->and($next->fresh()->ends_at->equalTo(now()->addSeconds(10)))->toBeTrue();
+        ->and($next->fresh()->started_at->equalTo(now()->addSeconds(3)))->toBeTrue()
+        ->and($next->fresh()->ends_at->equalTo(now()->addSeconds(3 + 10)))->toBeTrue();
     Event::assertDispatched(RoomUpdated::class, fn (RoomUpdated $event) => $event->reason === 'next-round');
 });
 

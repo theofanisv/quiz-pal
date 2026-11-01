@@ -8,6 +8,7 @@ use App\Exceptions\GameException;
 use App\Models\Player;
 use App\Models\Question;
 use App\Models\Room;
+use App\Support\LiveUpdates;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -15,7 +16,10 @@ class StartGame
 {
     use BroadcastsRoomUpdates;
 
-    public function __construct(private StartRound $startRound) {}
+    public function __construct(
+        private StartRound $startRound,
+        private LiveUpdates $liveUpdates,
+    ) {}
 
     /**
      * Pick the questions, create every round up front and open the first one.
@@ -30,6 +34,10 @@ class StartGame
 
         if (! $room->isInLobby()) {
             throw GameException::roomNotInLobby();
+        }
+
+        if (! $this->liveUpdates->isAvailable()) {
+            throw GameException::liveUpdatesUnavailable();
         }
 
         if (! $room->everyoneReady()) {

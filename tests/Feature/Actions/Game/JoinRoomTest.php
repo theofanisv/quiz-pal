@@ -5,7 +5,9 @@ use App\Events\RoomUpdated;
 use App\Exceptions\GameException;
 use App\Models\Player;
 use App\Models\Room;
+use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Validation\ValidationException;
 
 use function Pest\Laravel\assertDatabaseCount;
@@ -55,4 +57,25 @@ it('rejects joining a full room', function () {
 
     expect(fn () => app(JoinRoom::class)->handle($room, 'OneTooMany'))
         ->toThrow(GameException::class, 'This room is full.');
+});
+
+it('keeps the new player and reports the failure when the broadcast cannot be delivered', function () {
+    $room = Room::factory()->withAdmin()->create();
+    config([
+        'broadcasting.default' => 'reverb',
+        'broadcasting.connections.reverb' => [
+            'driver' => 'reverb',
+            'key' => 'test-key',
+            'secret' => 'test-secret',
+            'app_id' => '1',
+            'options' => ['host' => '127.0.0.1', 'port' => 1, 'scheme' => 'http', 'useTLS' => false],
+        ],
+    ]);
+    Exceptions::fake();
+
+    $player = app(JoinRoom::class)->handle($room, 'Nikos');
+
+    expect($player->exists)->toBeTrue()
+        ->and($room->players()->count())->toBe(2);
+    Exceptions::assertReported(BroadcastException::class);
 });

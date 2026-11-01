@@ -29,7 +29,18 @@ class RoundFactory extends Factory
     }
 
     /**
-     * A round that started now and times out after the given number of seconds.
+     * A round scheduled to show its question in a few seconds.
+     */
+    public function pending(int $seconds = 20, int $delay = Round::START_DELAY_SECONDS): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'started_at' => now()->addSeconds($delay),
+            'ends_at' => now()->addSeconds($delay + $seconds),
+        ]);
+    }
+
+    /**
+     * A round whose question is on screen now and times out after the given number of seconds.
      */
     public function started(int $seconds = 20): static
     {

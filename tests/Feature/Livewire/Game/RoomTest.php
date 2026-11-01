@@ -7,12 +7,14 @@ use App\Models\Player;
 use App\Models\Question;
 use App\Models\Room;
 use App\Models\Round;
+use App\Support\LiveUpdates;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\freezeSecond;
 use function Pest\Laravel\get;
+use function Pest\Laravel\mock;
 use function Pest\Laravel\travel;
 
 describe('joining', function () {
@@ -168,6 +170,19 @@ describe('lobby', function () {
         expect($room->fresh()->status)->toBe(RoomStatus::Lobby);
     });
 
+    it('warns the admin and blocks the start while live updates are unavailable', function () {
+        $room = Room::factory()->withAdmin()->create();
+        $room->admin->update(['is_ready' => true]);
+        mock(LiveUpdates::class)->shouldReceive('isAvailable')->andReturnFalse();
+
+        Livewire::actingAs($room->admin, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->assertSee('Live updates are unavailable')
+            ->assertSee('Start game');
+
+        expect($room->fresh()->status)->toBe(RoomStatus::Lobby);
+    });
+
     it('forbids actions from a visitor who is not a player', function () {
         $room = Room::factory()->withAdmin()->create();
 
@@ -193,6 +208,16 @@ describe('playing', function () {
 
         return [$room, $round, $player];
     }
+
+    it('shows a get-ready countdown while the question is scheduled', function () {
+        $room = Room::factory()->playing()->withAdmin()->create();
+        Round::factory()->for($room)->pending()->create(['round_number' => 1]);
+
+        Livewire::actingAs($room->admin, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->assertSee('Get ready…')
+            ->assertSee('Round 1 of 10');
+    });
 
     it('shows the question, the shuffled answers and who has answered', function () {
         [$room, $round, $player] = roomInPlay();

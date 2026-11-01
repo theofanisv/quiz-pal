@@ -192,7 +192,7 @@ process takes both apps' live updates down. A separate process costs 30 to 50 MB
    ```
 
    Then `php artisan optimize` and `php artisan reverb:restart` (supervisor starts it again).
-7. **Verify live**: open the site in two different browsers, create a room in one and join from the other. The new
+7. **Verify live**: the lobby of any room must not show the "Live updates are unavailable" warning. Then open the site in two different browsers, create a room in one and join from the other. The new
    player must appear on the first screen within a second or two; if it only shows up after about ten seconds, the
    WebSocket is not connected and the page is polling.
 
@@ -204,9 +204,11 @@ After each deployment run `php artisan optimize` and `php artisan reverb:restart
   reachable. Check that the supervisor program is running, that `VITE_REVERB_HOST/PORT/SCHEME` match how the browser
   reaches the site, that the assets were rebuilt after changing them, and that the `/app` proxy points at Reverb's port.
   The page still polls every 10 seconds, so the game keeps working, only slower.
-- **Game actions fail with a connection error after switching `BROADCAST_CONNECTION` to `reverb`**: PHP cannot reach
-  Reverb at `REVERB_HOST:REVERB_PORT`. Check the port, use `127.0.0.1` rather than `localhost`, and confirm the
-  supervisor program is up. Set `BROADCAST_CONNECTION=log` and run `php artisan optimize` to fall back to polling.
+- **The lobby shows "Live updates are unavailable" and Start game is disabled**: the application cannot reach
+  Reverb's health check at `REVERB_SCHEME://REVERB_HOST:REVERB_PORT/up`. Check the port, use `127.0.0.1` rather than
+  `localhost`, and confirm the supervisor program is up (`supervisorctl status quizpal-reverb`). Reverb is mandatory
+  for starting a game; joining, pressing ready and changing settings keep working through polling meanwhile, and each
+  failed broadcast is reported to the application log.
 - **curl handshake returns 404 or 500 but browsers work**: the test used HTTP/2. Add `--http1.1`.
 - **"Mixed content" errors in the browser console**: the site is served over HTTPS but `VITE_REVERB_SCHEME` is `http`.
   Use `https` and port `443` through the reverse proxy, then rebuild the assets.

@@ -8,9 +8,11 @@ use App\Models\Category;
 use App\Models\Player;
 use App\Models\Question;
 use App\Models\Room;
+use App\Support\LiveUpdates;
 use Illuminate\Support\Facades\Event;
 
 use function Pest\Laravel\freezeSecond;
+use function Pest\Laravel\mock;
 
 it('creates every round from the chosen categories and opens the first one', function () {
     freezeSecond();
@@ -35,8 +37,8 @@ it('creates every round from the chosen categories and opens the first one', fun
         ->and($rounds->pluck('question_id')->unique())->toHaveCount(4);
     expect($rounds->map(fn ($round) => $round->question->category_id)->countBy()->sortKeys()->all())
         ->toBe(collect([$history->id => 2, $sports->id => 2])->sortKeys()->all());
-    expect($rounds->first()->started_at->equalTo(now()))->toBeTrue()
-        ->and($rounds->first()->ends_at->equalTo(now()->addSeconds(15)))->toBeTrue()
+    expect($rounds->first()->started_at->equalTo(now()->addSeconds(3)))->toBeTrue()
+        ->and($rounds->first()->ends_at->equalTo(now()->addSeconds(3 + 15)))->toBeTrue()
         ->and($rounds->get(1)->started_at)->toBeNull();
     foreach ($rounds as $round) {
         expect(collect($round->answer_order)->sort()->values()->all())->toBe([0, 1, 2, 3]);
@@ -86,4 +88,17 @@ it('forbids players other than the admin', function () {
 
     expect(fn () => app(StartGame::class)->handle($room, $player))
         ->toThrow(GameException::class, 'Only the room admin can do that.');
+});
+
+it('refuses to start while live updates are unavailable', function () {
+    $room = Room::factory()->withAdmin()->create(['total_rounds' => 1]);
+    $room->admin->update(['is_ready' => true]);
+    $room->categories()->attach(Category::factory()->has(Question::factory())->create());
+    mock(LiveUpdates::class)->shouldReceive('isAvailable')->once()->andReturnFalse();
+
+    expect(fn () => app(StartGame::class)->handle($room, $room->admin))
+        ->toThrow(GameException::class, 'Live updates are unavailable, so the game cannot start right now.');
+
+    expect($room->fresh()->status)->toBe(RoomStatus::Lobby)
+        ->and($room->rounds()->count())->toBe(0);
 });

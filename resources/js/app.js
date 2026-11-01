@@ -7,11 +7,14 @@
 import './echo';
 
 /**
- * Question countdown. Driven by server timestamps so every device agrees on
- * when the round ends; the server still decides when it is really over.
+ * Round clock. Every value comes from server timestamps, so all devices show the
+ * question at the same instant and count down together; the server still decides
+ * when a round is really over.
  */
 document.addEventListener('alpine:init', () => {
-    window.Alpine.data('countdown', ({ endsAt, serverNow, totalMs }) => ({
+    window.Alpine.data('roundClock', ({ startsAt, endsAt, serverNow, totalMs }) => ({
+        started: false,
+        startsIn: 0,
         remaining: 0,
         fired: false,
         interval: null,
@@ -20,9 +23,13 @@ document.addEventListener('alpine:init', () => {
             const offset = Date.now() - serverNow;
 
             const tick = () => {
-                this.remaining = Math.max(0, endsAt - (Date.now() - offset));
+                const now = Date.now() - offset;
 
-                if (this.remaining <= 0 && !this.fired) {
+                this.startsIn = Math.max(0, Math.ceil((startsAt - now) / 1000));
+                this.started = now >= startsAt;
+                this.remaining = Math.max(0, endsAt - now);
+
+                if (this.started && this.remaining <= 0 && !this.fired) {
                     this.fired = true;
                     clearInterval(this.interval);
                     this.$wire.timeUp();
