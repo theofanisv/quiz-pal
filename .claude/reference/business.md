@@ -18,9 +18,8 @@ How users will interact with it:
 - The questions shall be grouped per category, the categories used in a game shall be configurable by the admin.
 - The app and the questions shall be available in english and greek.
 
-Use the latest Laravel, Reverb and anything else required.
+Use Reverb for live messaging.
 Since this is a simple app use sqlite for database.
-I would prefer not to use redis but if it is required for background jobs and other stuff you may use it.
 Create a proper `readme.md`, and `installation.md`.
 Initialize a git repo and add commits, later I will add a remote and push them.
 
