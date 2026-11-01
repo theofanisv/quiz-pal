@@ -89,4 +89,4 @@ composer types:check   # static analysis
 composer test          # lint, static analysis and tests, as CI runs them
 ```
 
-Rooms that have been idle for 24 hours are deleted by the scheduled `quiz:prune-rooms` command.
+Rooms that have been idle for 7 days are deleted by the scheduled `quiz:prune-rooms` command (run `php artisan quiz:prune-rooms --days=1` for a shorter threshold).
