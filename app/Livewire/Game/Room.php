@@ -1,0 +1,265 @@
+<?php
+
+namespace App\Livewire\Game;
+
+use App\Actions\Game\AdvanceRound;
+use App\Actions\Game\CloseExpiredRound;
+use App\Actions\Game\JoinRoom;
+use App\Actions\Game\RemovePlayer;
+use App\Actions\Game\ResetRoom;
+use App\Actions\Game\SetPlayerReady;
+use App\Actions\Game\StartGame;
+use App\Actions\Game\SubmitAnswer;
+use App\Actions\Game\TrackPresence;
+use App\Actions\Game\UpdateRoomSettings;
+use App\Events\RoomUpdated;
+use App\Exceptions\GameException;
+use App\Models\Category;
+use App\Models\Player;
+use App\Models\Room as RoomModel;
+use Closure;
+use Flux\Flux;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
+
+/**
+ * The single page of a room: join form, lobby, play and results.
+ * State lives in the database; every broadcast simply re-renders this component.
+ */
+#[Layout('layouts::game')]
+class Room extends Component
+{
+    public RoomModel $room;
+
+    public string $name = '';
+
+    public int $totalRounds = 10;
+
+    public int $secondsPerQuestion = 20;
+
+    /** @var array<int, int> */
+    public array $categories = [];
+
+    public function mount(RoomModel $room): void
+    {
+        $this->room = $room;
+
+        $this->fillSettings();
+    }
+
+    /**
+     * Only players subscribe to the room's presence channel.
+     *
+     * @return array<string, string>
+     */
+    public function getListeners(): array
+    {
+        if ($this->player() === null) {
+            return [];
+        }
+
+        $channel = RoomUpdated::channelName($this->room->code);
+
+        return [
+            "echo-presence:{$channel},RoomUpdated" => '$refresh',
+            "echo-presence:{$channel},here" => 'syncPresence',
+            "echo-presence:{$channel},joining" => 'playerJoined',
+            "echo-presence:{$channel},leaving" => 'playerLeft',
+        ];
+    }
+
+    public function join(JoinRoom $joinRoom): void
+    {
+        $player = $this->guard(fn (): Player => $joinRoom->handle($this->room, $this->name));
+
+        if ($player === null) {
+            return;
+        }
+
+        Auth::guard('player')->login($player);
+
+        $this->redirectRoute('rooms.show', $this->room);
+    }
+
+    public function toggleReady(SetPlayerReady $setPlayerReady): void
+    {
+        $player = $this->requirePlayer();
+
+        $this->guard(fn () => $setPlayerReady->handle($player, ! $player->is_ready));
+    }
+
+    public function updated(string $property): void
+    {
+        if (in_array(Str::before($property, '.'), ['totalRounds', 'secondsPerQuestion', 'categories'], true)) {
+            $this->saveSettings();
+        }
+    }
+
+    public function saveSettings(): void
+    {
+        $player = $this->requirePlayer();
+
+        $this->guard(fn () => app(UpdateRoomSettings::class)->handle($this->room, $player, [
+            'total_rounds' => $this->totalRounds,
+            'seconds_per_question' => $this->secondsPerQuestion,
+            'categories' => $this->categories,
+        ]));
+    }
+
+    public function removePlayer(int $playerId, RemovePlayer $removePlayer): void
+    {
+        $actor = $this->requirePlayer();
+        $target = $this->room->players()->findOrFail($playerId);
+
+        $this->guard(fn () => $removePlayer->handle($this->room, $actor, $target));
+    }
+
+    public function startGame(StartGame $startGame): void
+    {
+        $player = $this->requirePlayer();
+
+        $this->guard(fn () => $startGame->handle($this->room, $player));
+    }
+
+    public function answer(int $choice, SubmitAnswer $submitAnswer): void
+    {
+        $player = $this->requirePlayer();
+        $round = $this->room->currentRound();
+
+        if ($round === null) {
+            return;
+        }
+
+        $this->guard(fn () => $submitAnswer->handle($round, $player, $choice));
+    }
+
+    /**
+     * Called by any client whose countdown reached zero; the server clock decides.
+     */
+    public function timeUp(CloseExpiredRound $closeExpiredRound): void
+    {
+        $this->requirePlayer();
+        $round = $this->room->currentRound();
+
+        if ($round !== null) {
+            $closeExpiredRound->handle($round);
+        }
+    }
+
+    public function nextRound(AdvanceRound $advanceRound): void
+    {
+        $player = $this->requirePlayer();
+
+        $this->guard(fn () => $advanceRound->handle($this->room, $player));
+    }
+
+    public function playAgain(ResetRoom $resetRoom): void
+    {
+        $player = $this->requirePlayer();
+
+        $this->guard(fn () => $resetRoom->handle($this->room, $player));
+        $this->fillSettings();
+    }
+
+    /**
+     * @param  array<int, array{id: int|string, name: string}>  $members
+     */
+    public function syncPresence(array $members, TrackPresence $trackPresence): void
+    {
+        $this->requirePlayer();
+
+        $trackPresence->sync($this->room, array_map(fn (array $member): int => (int) $member['id'], $members));
+    }
+
+    /**
+     * @param  array{id: int|string, name: string}  $member
+     */
+    public function playerJoined(array $member, TrackPresence $trackPresence): void
+    {
+        $this->requirePlayer();
+
+        $trackPresence->joined($this->room, (int) $member['id']);
+    }
+
+    /**
+     * @param  array{id: int|string, name: string}  $member
+     */
+    public function playerLeft(array $member, TrackPresence $trackPresence): void
+    {
+        $this->requirePlayer();
+
+        $trackPresence->left($this->room, (int) $member['id']);
+    }
+
+    public function render(): View
+    {
+        $this->room->refresh();
+
+        $player = $this->player();
+        $round = $this->room->isPlaying() ? $this->room->currentRound() : null;
+        $answers = $round?->answers()->get()->keyBy('player_id') ?? collect();
+        $players = $this->room->players;
+
+        return view('livewire.game.room', [
+            'player' => $player,
+            'isAdmin' => $player !== null && $this->room->isAdmin($player),
+            'players' => $players,
+            'leaderboard' => $players->sortBy([['score', 'desc'], ['name', 'asc']])->values(),
+            'round' => $round,
+            'answers' => $answers,
+            'myAnswer' => $player !== null ? $answers->get($player->id) : null,
+            'allCategories' => Category::query()->orderBy('sort_order')->orderBy('name_en')->get(),
+            'shareUrl' => route('rooms.show', $this->room),
+        ])->title(__('Room :code', ['code' => $this->room->code]));
+    }
+
+    private function fillSettings(): void
+    {
+        $this->totalRounds = $this->room->total_rounds;
+        $this->secondsPerQuestion = $this->room->seconds_per_question;
+        $this->categories = $this->room->categories()->pluck('categories.id')->map(fn (int $id): int => $id)->all();
+    }
+
+    /**
+     * The current visitor as a player of this room, if they registered.
+     */
+    private function player(): ?Player
+    {
+        $player = Auth::guard('player')->user();
+
+        return $player instanceof Player && $player->room_id === $this->room->id ? $player : null;
+    }
+
+    private function requirePlayer(): Player
+    {
+        return $this->player() ?? abort(403);
+    }
+
+    /**
+     * Run a game action, turning rule violations into a toast and validation
+     * failures into field errors on this component.
+     *
+     * @template TResult
+     *
+     * @param  Closure(): TResult  $callback
+     * @return TResult|null
+     */
+    private function guard(Closure $callback): mixed
+    {
+        try {
+            return $callback();
+        } catch (GameException $exception) {
+            Flux::toast(variant: 'danger', text: $exception->getMessage());
+        } catch (ValidationException $exception) {
+            foreach ($exception->errors() as $field => $messages) {
+                $this->addError(Str::camel($field), $messages[0]);
+            }
+        }
+
+        return null;
+    }
+}

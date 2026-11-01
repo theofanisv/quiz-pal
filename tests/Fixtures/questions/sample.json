@@ -1,0 +1,20 @@
+{
+    "category": {
+        "slug": "sample",
+        "order": 1,
+        "name": { "en": "Sample", "el": "Δείγμα" }
+    },
+    "questions": [
+        {
+            "text": { "en": "What is 2 + 2?", "el": "Πόσο κάνει 2 + 2;" },
+            "answers": { "en": ["3", "4", "5", "6"], "el": ["3", "4", "5", "6"] },
+            "correct": 1,
+            "difficulty": 1
+        },
+        {
+            "text": { "en": "Which color do you get by mixing blue and yellow?", "el": "Ποιο χρώμα προκύπτει από μπλε και κίτρινο;" },
+            "answers": { "en": ["Purple", "Orange", "Green", "Brown"], "el": ["Μωβ", "Πορτοκαλί", "Πράσινο", "Καφέ"] },
+            "correct": 2
+        }
+    ]
+}

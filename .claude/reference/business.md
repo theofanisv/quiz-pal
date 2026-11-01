@@ -21,7 +21,6 @@ How users will interact with it:
 Use Reverb for live messaging.
 Since this is a simple app use sqlite for database.
 Create a proper `readme.md`, and `installation.md`.
-Initialize a git repo and add commits, later I will add a remote and push them.
 
 
 

@@ -70,7 +70,7 @@ class Security extends Component
             throw $e;
         }
 
-        Auth::user()->update([
+        Auth::guard('web')->user()->update([
             'password' => $validated['password'],
         ]);
 
@@ -84,7 +84,7 @@ class Security extends Component
      */
     public function loadPasskeys(): void
     {
-        $this->passkeys = Auth::user()->passkeys()
+        $this->passkeys = Auth::guard('web')->user()->passkeys()
             ->select(['id', 'name', 'credential', 'created_at', 'last_used_at'])
             ->latest()
             ->get()
@@ -103,7 +103,7 @@ class Security extends Component
      */
     public function confirmDelete(int $passkeyId): void
     {
-        $passkey = Auth::user()->passkeys()->findOrFail($passkeyId);
+        $passkey = Auth::guard('web')->user()->passkeys()->findOrFail($passkeyId);
 
         $this->deletingPasskeyId = $passkey->id;
         $this->deletingPasskeyName = $passkey->name;
@@ -119,7 +119,7 @@ class Security extends Component
             return;
         }
 
-        $user = Auth::user();
+        $user = Auth::guard('web')->user();
         $passkey = $user->passkeys()->findOrFail($this->deletingPasskeyId);
 
         $deletePasskey($user, $passkey);

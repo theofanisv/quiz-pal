@@ -24,8 +24,8 @@ class Profile extends Component
      */
     public function mount(): void
     {
-        $this->name = Auth::user()->name;
-        $this->email = Auth::user()->email;
+        $this->name = Auth::guard('web')->user()->name;
+        $this->email = Auth::guard('web')->user()->email;
     }
 
     /**
@@ -33,7 +33,7 @@ class Profile extends Component
      */
     public function updateProfileInformation(): void
     {
-        $user = Auth::user();
+        $user = Auth::guard('web')->user();
 
         $validated = $this->validate($this->profileRules($user->id));
 
@@ -53,7 +53,7 @@ class Profile extends Component
      */
     public function resendVerificationNotification(): void
     {
-        $user = Auth::user();
+        $user = Auth::guard('web')->user();
 
         if ($user->hasVerifiedEmail()) {
             $this->redirectIntended(default: route('dashboard', absolute: false));
@@ -69,7 +69,7 @@ class Profile extends Component
     #[Computed]
     public function hasUnverifiedEmail(): bool
     {
-        $user = Auth::user();
+        $user = Auth::guard('web')->user();
 
         return $user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail();
     }
@@ -77,7 +77,7 @@ class Profile extends Component
     #[Computed]
     public function showDeleteUser(): bool
     {
-        $user = Auth::user();
+        $user = Auth::guard('web')->user();
 
         return ! $user instanceof MustVerifyEmail || $user->hasVerifiedEmail();
     }
