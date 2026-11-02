@@ -2,14 +2,17 @@
 
 ## Requirements
 
-- PHP 8.3 or newer with the `pdo_mysql`, `pdo_sqlite`, `sqlite3`, `mbstring`, `xml`, `xmlwriter`, `curl` and `pcntl` extensions
+- PHP 8.3 or newer with the `pdo_mysql`, `pdo_sqlite`, `sqlite3`, `mbstring`, `xml`, `xmlwriter`, `curl`, `pcntl` and `redis` (phpredis) extensions
 - MySQL 8 for production
+- Redis 6 or newer (sessions, cache and the queue connection use it)
 - Composer 2
 - Node.js 22 or newer with npm
 - Git
 
 Locally QuizPal uses a SQLite file by default and the tests use SQLite in memory, so no database server is needed to
-develop. Production runs on MySQL; to use MySQL locally as well, set the `DB_*` values described below.
+develop. Production runs on MySQL; to use MySQL locally as well, set the `DB_*` values described below. Sessions, cache and
+the queue use Redis in every environment, so a Redis server must be running (Herd ships one; otherwise `brew install redis`
+or `apt install redis-server`).
 
 ## Local setup
 
@@ -36,6 +39,8 @@ Open `.env` and check these values:
 | `APP_URL` | The URL you open in the browser (the share links and QR codes are built from it) |
 | `APP_LOCALE` | Default interface language: `el` (Greek) or `en` (English). Players can switch at any time |
 | `DB_CONNECTION` | `sqlite` (the default) keeps everything in `database/database.sqlite`. For MySQL set `mysql` and fill in `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME` and `DB_PASSWORD`; the database must exist before `php artisan migrate` runs |
+| `SESSION_DRIVER`, `CACHE_STORE`, `QUEUE_CONNECTION` | All `redis`. Keys are prefixed with a slug of `APP_NAME` (`quizpal-database-`, `quizpal-cache-`), so several apps can share one Redis server |
+| `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` | Where Redis listens. The defaults match a local server without a password |
 | `REVERB_APP_ID`, `REVERB_APP_KEY`, `REVERB_APP_SECRET` | Credentials shared by the app and the Reverb server. `php artisan reverb:install` generates random values; any random strings work |
 | `REVERB_HOST`, `REVERB_PORT`, `REVERB_SCHEME` | Where browsers connect for WebSockets. Locally `localhost`, `8080`, `http` |
 | `VITE_REVERB_*` | The same values exposed to the browser bundle |
@@ -48,7 +53,8 @@ Vite bakes the `VITE_*` values into the JavaScript bundle, so run `npm run build
 php artisan dev
 ```
 
-This starts, in one terminal, the PHP development server (`http://localhost:8000`), the Reverb WebSocket server (`localhost:8080`), the queue listener, the log viewer and Vite. Open `http://localhost:8000`.
+This starts, in one terminal, the PHP development server (`http://localhost:8000`), the Reverb WebSocket server (`localhost:8080`), the queue listener, the log viewer and Vite. Open `http://localhost:8000`. The queue listener and the session store need
+Redis, so `redis-server` must be running (Herd starts it for you).
 
 You can also run the processes separately:
 
@@ -93,7 +99,9 @@ If the server has several PHP versions, call the one that serves the site explic
 
 1. **Build**: `composer install --no-dev --optimize-autoloader`, `npm ci && npm run build`.
 2. **Environment**: set `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://your-domain`, `APP_LOCALE` (`el` or
-   `en`), random `REVERB_APP_ID`, `REVERB_APP_KEY` and `REVERB_APP_SECRET`, and `BROADCAST_CONNECTION=log` for now.
+   `en`), random `REVERB_APP_ID`, `REVERB_APP_KEY` and `REVERB_APP_SECRET`, `BROADCAST_CONNECTION=log` for now,
+   `SESSION_DRIVER=redis`, `CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`, and `REDIS_PASSWORD` if the server's Redis
+   requires one.
    Generate a fresh key with `php artisan key:generate --force` rather than copying a development key.
 3. **Browser-side Reverb values** (baked into the assets, so set them before `npm run build`):
 
@@ -122,18 +130,24 @@ If the server has several PHP versions, call the one that serves the site explic
 
    An installation that ran on SQLite before (until November 2026) is switched the same way: point `.env` at MySQL,
    migrate, seed, then `php artisan optimize`. The old `database/database.sqlite` is left alone; nothing is copied from it.
-5. **Cache**: `php artisan optimize`. Run it again after every change to `.env`, because the configuration is cached.
-6. **Permissions**: `storage/` and `bootstrap/cache/` must be writable by the user PHP-FPM runs as. Keep `.env` readable only by that user.
-7. **Scheduler**: add a cron entry so idle rooms get cleaned up every day:
+5. **Redis**: `redis-cli ping` must answer `PONG`, and the PHP-FPM that serves the site must load the `redis` extension
+   (`/usr/sbin/php-fpm8.3 -m | grep -i redis`). If other Laravel apps share this Redis server, keep `APP_NAME` unique (the
+   key prefix is derived from it) or set `REDIS_PREFIX` and `CACHE_PREFIX` explicitly. Never run `php artisan cache:clear`
+   or `php artisan optimize:clear` against a shared Redis: they flush the whole cache database, including the other apps'
+   keys. `php artisan optimize` is safe.
+6. **Cache**: `php artisan optimize`. Run it again after every change to `.env`, because the configuration is cached.
+7. **Permissions**: `storage/` and `bootstrap/cache/` must be writable by the user PHP-FPM runs as. Keep `.env` readable only by that user.
+8. **Scheduler**: add a cron entry so idle rooms get cleaned up every day:
 
    ```cron
    * * * * * cd /var/www/quizpal && php artisan schedule:run >> /dev/null 2>&1
    ```
 
-8. **HTTPS**: with the nginx site in place, `certbot --nginx -d your-domain --redirect` adds the certificate and the
+9. **HTTPS**: with the nginx site in place, `certbot --nginx -d your-domain --redirect` adds the certificate and the
    HTTP-to-HTTPS redirect. certbot writes its lines into the site's nginx file, so do not overwrite that file later.
 
-No queue worker is required: game events are broadcast synchronously, so a Reverb outage never leaves jobs behind.
+No queue worker is required: game events are broadcast synchronously, so a Reverb outage never leaves jobs behind. The
+queue connection is set to Redis only so that it matches cache and sessions; nothing is ever queued.
 
 ### Reverb
 
@@ -232,3 +246,9 @@ After each deployment run `php artisan migrate --force`, then `php artisan optim
   do not match the MySQL user, or the configuration cache is stale. Fix `.env`, then `php artisan optimize`.
 - **Database is locked** (SQLite, local setups only): the SQLite file or its directory is not writable by the user
   running PHP.
+- **`Class "Redis" not found` or `Connection refused [tcp://127.0.0.1:6379]`**: the `redis` PHP extension is missing from
+  the PHP that serves the site, or Redis is not running, or `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` are wrong.
+  Sessions, cache and the queue all need it.
+- **Everyone was logged out of their room and the admin lost the admin buttons**: the session store changed (for example
+  `SESSION_DRIVER`) or Redis lost its data. Live sessions cannot be recovered; players create a new room. Change the
+  session store only while no game is running.
