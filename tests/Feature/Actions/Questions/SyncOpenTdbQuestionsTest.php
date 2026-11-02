@@ -153,6 +153,16 @@ it('skips questions without four distinct answers or with text that does not fit
     assertDatabaseCount('questions', 48);
 });
 
+it('skips questions on the removed list', function () {
+    useRemovedOpenTdbQuestions([['category' => 18, 'text' => 'Question 7?']]);
+    fakeOpenTdb([['id' => 18, 'name' => 'Science: Computers']], [18 => [openTdbQuestions(50)]]);
+
+    $summary = app(SyncOpenTdbQuestions::class)->handle();
+
+    expect($summary)->toBe(['categories' => 1, 'questions' => 49, 'skipped' => 1])
+        ->and(Question::query()->where('text_en', 'Question 7?')->exists())->toBeFalse();
+});
+
 it('asks for smaller pages until the category runs dry', function () {
     fakeOpenTdb([['id' => 13, 'name' => 'Musicals']], [13 => [openTdbQuestions(50), openTdbQuestions(3, 'Last')]]);
 

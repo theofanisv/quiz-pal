@@ -6,6 +6,7 @@ use App\Enums\QuestionSource;
 use App\Models\Category;
 use App\Models\Question;
 use App\Support\OpenTdbClient;
+use App\Support\RemovedOpenTdbQuestions;
 use Closure;
 use Illuminate\Http\Client\HttpClientException;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +18,8 @@ use RuntimeException;
  * question bank, one category per OpenTDB category, tagged with the "opentdb" source, so
  * that `quiz:export-opentdb` can write the committed snapshot. The rows it writes are
  * English only, so a run clears local Greek text; the exporter restores the translations
- * from the committed files.
+ * from the committed files. Questions on the removed list (`RemovedOpenTdbQuestions`) are
+ * skipped like unusable ones.
  *
  * OpenTDB serves one category per request, at most 50 questions per page, and one request
  * per 5 seconds per IP. With a session token it answers code 4 as soon as the requested
@@ -69,7 +71,7 @@ class SyncOpenTdbQuestions
 
     private int $requests = 0;
 
-    public function __construct(private OpenTdbClient $client) {}
+    public function __construct(private OpenTdbClient $client, private RemovedOpenTdbQuestions $removed) {}
 
     /**
      * @param  list<int>|null  $onlyExternalIds  Restrict the run to these OpenTDB category ids.
@@ -186,7 +188,7 @@ class SyncOpenTdbQuestions
             foreach ($results as $result) {
                 $answers = [$result['correct_answer'], ...$result['incorrect_answers']];
 
-                if (! $this->isUsable($result['question'], $answers)) {
+                if (! $this->isUsable($result['question'], $answers) || $this->removed->contains((int) $category->external_id, $result['question'])) {
                     $skipped++;
 
                     continue;

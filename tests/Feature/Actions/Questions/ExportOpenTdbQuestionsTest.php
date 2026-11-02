@@ -72,6 +72,26 @@ it('keeps greek translations from the existing file while the english text and a
     File::deleteDirectory($directory);
 });
 
+it('leaves out questions on the removed list, whether they come from the database or the existing file', function () {
+    $directory = exportDirectory();
+    useRemovedOpenTdbQuestions([['category' => 9, 'text' => 'Wrong in the database?'], ['category' => 9, 'text' => 'Wrong in the file?']]);
+    $general = Category::factory()->openTdb(9)->create(['name_en' => 'General Knowledge', 'name_el' => 'Γενικές γνώσεις']);
+    Question::factory()->for($general)->englishOnly()->create(['text_en' => 'Kept?']);
+    Question::factory()->for($general)->englishOnly()->create(['text_en' => 'Wrong in the database?']);
+    file_put_contents("{$directory}/09-general-knowledge.json", json_encode([
+        'category' => ['slug' => 'opentdb-9', 'order' => 9, 'source' => 'opentdb', 'external_id' => 9, 'name' => ['en' => 'General Knowledge', 'el' => 'Γενικές γνώσεις']],
+        'questions' => [
+            ['text' => ['en' => 'Wrong in the file?'], 'answers' => ['en' => ['a', 'b', 'c', 'd']], 'correct' => 0],
+        ],
+    ], JSON_UNESCAPED_UNICODE));
+
+    $summary = app(ExportOpenTdbQuestions::class)->handle($directory);
+
+    expect($summary['questions'])->toBe(1)
+        ->and(array_column(array_column(readSnapshot("{$directory}/09-general-knowledge.json")['questions'], 'text'), 'en'))->toBe(['Kept?']);
+    File::deleteDirectory($directory);
+});
+
 it('exports only the requested categories', function () {
     $directory = exportDirectory();
     Category::factory()->openTdb(9)->has(Question::factory()->englishOnly())->create(['name_en' => 'General Knowledge']);

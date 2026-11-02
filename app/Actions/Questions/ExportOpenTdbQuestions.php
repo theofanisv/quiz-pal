@@ -5,6 +5,7 @@ namespace App\Actions\Questions;
 use App\Enums\QuestionSource;
 use App\Models\Category;
 use App\Models\Question;
+use App\Support\RemovedOpenTdbQuestions;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -16,7 +17,8 @@ use RuntimeException;
  * The English text identifies a question. A Greek translation already in the file is kept
  * only while the English text and answers are unchanged, because the Greek answers are
  * aligned with the English ones by position. Questions that are in the file but no longer
- * in the local database are kept: the committed file is the source of truth.
+ * in the local database are kept: the committed file is the source of truth. Questions on
+ * the removed list (`RemovedOpenTdbQuestions`) are left out, wherever they come from.
  *
  * @phpstan-type SnapshotQuestion array{text: array{en: string, el?: string}, answers: array{en: list<string>, el?: list<string>}, correct: int, difficulty?: int}
  */
@@ -25,6 +27,8 @@ class ExportOpenTdbQuestions
     public const string ATTRIBUTION = 'Open Trivia Database (https://opentdb.com), CC BY-SA 4.0';
 
     private const int JSON_FLAGS = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR;
+
+    public function __construct(private RemovedOpenTdbQuestions $removed) {}
 
     /**
      * @param  list<int>|null  $onlyExternalIds  Restrict the export to these OpenTDB category ids.
@@ -59,6 +63,10 @@ class ExportOpenTdbQuestions
                 $summary['retranslate'] += $retranslate ? 1 : 0;
             }
 
+            $questions = array_filter(
+                $questions,
+                fn (array $question): bool => ! $this->removed->contains((int) $category->external_id, $question['text']['en']),
+            );
             ksort($questions, SORT_STRING);
             $questions = array_values($questions);
 

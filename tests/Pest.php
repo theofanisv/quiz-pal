@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\RemovedOpenTdbQuestions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,4 +48,17 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Point the list of removed Open Trivia DB questions at a temporary file holding these entries.
+ *
+ * @param  list<array<string, mixed>>  $questions
+ */
+function useRemovedOpenTdbQuestions(array $questions): void
+{
+    $path = (string) tempnam(sys_get_temp_dir(), 'opentdb-removed-');
+    file_put_contents($path, json_encode(['questions' => $questions], JSON_THROW_ON_ERROR));
+
+    app()->instance(RemovedOpenTdbQuestions::class, new RemovedOpenTdbQuestions($path));
 }
