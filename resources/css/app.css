@@ -9,7 +9,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Tektur', 'Manrope', ui-sans-serif, system-ui, sans-serif;
 
     --color-zinc-50: #fafafa;
     --color-zinc-100: #f5f5f5;
@@ -26,13 +27,125 @@
     --color-accent: var(--color-neutral-800);
     --color-accent-content: var(--color-neutral-800);
     --color-accent-foreground: var(--color-white);
+
+    /* The arcade palette: a navy night sky, chalk-white ink and five neon lights. */
+    --color-night-950: #070a14;
+    --color-night-900: #0b1020;
+    --color-night-800: #121a33;
+    --color-night-700: #1b2547;
+    --color-night-600: #2a3766;
+    --color-ink: #f4f6ff;
+    --color-ink-muted: #9aa3c7;
+    --color-neon-cyan: #22e1ff;
+    --color-neon-magenta: #ff3cac;
+    --color-neon-lime: #b4ff39;
+    --color-neon-amber: #ffb830;
+    --color-neon-violet: #9d6bff;
+    --color-win: #39ff8f;
+    --color-lose: #ff4d6d;
+
+    --animate-pop-in: pop-in 320ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+    --animate-shake: shake 400ms ease-in-out;
+    --animate-score-pop: score-pop 600ms ease-out both;
+    --animate-flip-in: flip-in 500ms ease-out both;
+    --animate-pulse-glow: pulse-glow 1s ease-in-out infinite;
+    --animate-rise: rise 500ms ease-out both;
+    --animate-float: float 7s ease-in-out infinite;
+
+    @keyframes pop-in {
+        from {
+            opacity: 0;
+            transform: scale(0.85) translateY(8px);
+        }
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    @keyframes shake {
+        20%,
+        60% {
+            transform: translateX(-6px);
+        }
+        40%,
+        80% {
+            transform: translateX(6px);
+        }
+    }
+
+    @keyframes score-pop {
+        0% {
+            opacity: 0;
+            transform: translateY(6px) scale(0.8);
+        }
+        40% {
+            transform: scale(1.25);
+        }
+        100% {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    @keyframes flip-in {
+        from {
+            opacity: 0;
+            transform: perspective(600px) rotateX(-90deg);
+        }
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    @keyframes pulse-glow {
+        50% {
+            filter: brightness(1.4);
+            transform: scale(1.06);
+        }
+    }
+
+    @keyframes rise {
+        from {
+            opacity: 0;
+            transform: scaleY(0);
+        }
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    @keyframes float {
+        50% {
+            transform: translateY(-18px);
+        }
+    }
 }
 
+/*
+ * Game pages are always dark. Remapping the zinc scale here re-skins every Flux
+ * component (cards, inputs, badges, callouts, toasts) to the navy palette, and the
+ * accent becomes neon cyan. Light mode keeps the stock values for the auth pages.
+ */
 @layer theme {
     .dark {
-        --color-accent: var(--color-white);
-        --color-accent-content: var(--color-white);
-        --color-accent-foreground: var(--color-neutral-800);
+        --color-accent: var(--color-neon-cyan);
+        --color-accent-content: var(--color-neon-cyan);
+        --color-accent-foreground: var(--color-night-950);
+
+        --color-zinc-50: #f6f7fd;
+        --color-zinc-100: #eceef9;
+        --color-zinc-200: #dde1f3;
+        --color-zinc-300: #c3c9e6;
+        --color-zinc-400: #9aa3c7;
+        --color-zinc-500: #6b78a8;
+        --color-zinc-600: #2a3766;
+        --color-zinc-700: #1b2547;
+        --color-zinc-800: #121a33;
+        --color-zinc-900: #0b1020;
+        --color-zinc-950: #070a14;
     }
 }
 
@@ -44,6 +157,34 @@
     ::backdrop,
     ::file-selector-button {
         border-color: var(--color-gray-200, currentColor);
+    }
+}
+
+/* Neon glow around an element; the colour comes from --glow. */
+@utility glow {
+    box-shadow:
+        0 0 0 1px var(--glow),
+        0 0 18px color-mix(in oklab, var(--glow) 55%, transparent),
+        0 0 48px color-mix(in oklab, var(--glow) 25%, transparent);
+}
+
+@utility glow-text {
+    text-shadow: 0 0 12px color-mix(in oklab, currentColor 70%, transparent);
+}
+
+/* Conic countdown disc; --p is the remaining percentage (0-100). */
+@utility timer-ring {
+    background: conic-gradient(var(--color-neon-cyan) calc(var(--p) * 1%), var(--color-night-700) 0);
+}
+
+@layer components {
+    /* Optimistic "you picked this" state of an answer tile; --tile is the tile's neon. */
+    .tile-picked {
+        border-color: var(--tile);
+        box-shadow:
+            0 0 0 1px var(--tile),
+            0 0 18px color-mix(in oklab, var(--tile) 55%, transparent);
+        transform: scale(1.02);
     }
 }
 

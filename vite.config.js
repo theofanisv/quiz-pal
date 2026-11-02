@@ -13,8 +13,13 @@ export default defineConfig({
             ],
             refresh: true,
             fonts: [
-                bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
+                bunny('Tektur', {
+                    weights: [700, 800],
+                    subsets: ['latin', 'greek'],
+                }),
+                bunny('Manrope', {
+                    weights: [400, 500, 600, 700],
+                    subsets: ['latin', 'greek'],
                 }),
             ],
         }),
