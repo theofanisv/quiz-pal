@@ -1,0 +1,14 @@
+{
+    "attribution": "Open Trivia Database (https://opentdb.com), CC BY-SA 4.0",
+    "category": {
+        "slug": "opentdb-13",
+        "order": 13,
+        "source": "opentdb",
+        "external_id": 13,
+        "name": { "en": "Entertainment: Musicals & Theatres", "el": "Ψυχαγωγία: Μιούζικαλ & Θέατρο" }
+    },
+    "questions": [
+        { "text": { "en": "Who composed the musical \"Cats\"?" }, "answers": { "en": ["Andrew Lloyd Webber", "Stephen Sondheim", "Lin-Manuel Miranda", "Claude-Michel Schönberg"] }, "correct": 0, "difficulty": 1 },
+        { "text": { "en": "In which city is the musical \"Chicago\" set?", "el": "Σε ποια πόλη διαδραματίζεται το μιούζικαλ «Chicago»;" }, "answers": { "en": ["Chicago", "New York", "Boston", "Los Angeles"], "el": ["Σικάγο", "Νέα Υόρκη", "Βοστώνη", "Λος Άντζελες"] }, "correct": 0, "difficulty": 2 }
+    ]
+}

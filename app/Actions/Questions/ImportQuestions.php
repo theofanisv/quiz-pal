@@ -2,17 +2,22 @@
 
 namespace App\Actions\Questions;
 
+use App\Enums\QuestionSource;
 use App\Models\Category;
 use App\Models\Question;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
- * Import bilingual questions from JSON files. Running it again updates the
- * existing rows instead of duplicating them, so files can be edited and re-imported.
+ * Import questions from JSON files. Running it again updates the existing rows instead of
+ * duplicating them, so files can be edited and re-imported.
  *
- * @phpstan-type QuestionData array{text: array{en: string, el: string}, answers: array{en: array<int, string>, el: array<int, string>}, correct: int, difficulty?: int}
- * @phpstan-type CategoryData array{slug: string, order?: int, name: array{en: string, el: string}}
+ * Built-in files are bilingual. Snapshot files mirrored from Open Trivia DB (category source
+ * "opentdb") may hold English-only questions until they are translated; those are stored
+ * without Greek text and shown in English.
+ *
+ * @phpstan-type QuestionData array{text: array{en: string, el?: string}, answers: array{en: array<int, string>, el?: array<int, string>}, correct: int, difficulty?: int}
+ * @phpstan-type CategoryData array{slug: string, order?: int, source?: mixed, external_id?: mixed, name: array{en: string, el: string}}
  */
 class ImportQuestions
 {
@@ -41,16 +46,40 @@ class ImportQuestions
     }
 
     /**
+     * Import the files bundled with the application: the built-in bank and, when present,
+     * the Open Trivia DB snapshot.
+     *
+     * @return array{files: int, questions: int}
+     */
+    public function handleBundled(): array
+    {
+        $result = $this->handleDirectory(database_path('data/questions'));
+
+        if (is_dir(database_path('data/opentdb'))) {
+            $snapshot = $this->handleDirectory(database_path('data/opentdb'));
+            $result['files'] += $snapshot['files'];
+            $result['questions'] += $snapshot['questions'];
+        }
+
+        return $result;
+    }
+
+    /**
      * Import one file and return how many questions it holds.
      */
     public function handleFile(string $path): int
     {
         $data = $this->parse($path);
+        $source = $this->source($data['category'], $path);
 
-        return DB::transaction(function () use ($data, $path): int {
+        return DB::transaction(function () use ($data, $path, $source): int {
+            $externalId = $data['category']['external_id'] ?? null;
+
             $category = Category::query()->updateOrCreate(
                 ['slug' => $data['category']['slug']],
                 [
+                    'source' => $source,
+                    'external_id' => is_int($externalId) ? $externalId : null,
                     'name_en' => $data['category']['name']['en'],
                     'name_el' => $data['category']['name']['el'],
                     'sort_order' => $data['category']['order'] ?? 0,
@@ -58,14 +87,14 @@ class ImportQuestions
             );
 
             foreach ($data['questions'] as $index => $question) {
-                $this->validateQuestion($question, $path, $index);
+                $this->validateQuestion($question, $source, $path, $index);
 
                 Question::query()->updateOrCreate(
                     ['category_id' => $category->id, 'text_en' => $question['text']['en']],
                     [
-                        'text_el' => $question['text']['el'],
+                        'text_el' => $question['text']['el'] ?? null,
                         'answers_en' => array_values($question['answers']['en']),
-                        'answers_el' => array_values($question['answers']['el']),
+                        'answers_el' => isset($question['answers']['el']) ? array_values($question['answers']['el']) : null,
                         'correct_index' => $question['correct'],
                         'difficulty' => $question['difficulty'] ?? null,
                     ],
@@ -98,13 +127,31 @@ class ImportQuestions
     }
 
     /**
+     * @param  CategoryData  $category
+     */
+    private function source(array $category, string $path): QuestionSource
+    {
+        $value = $category['source'] ?? QuestionSource::Custom->value;
+        $source = is_string($value) ? QuestionSource::tryFrom($value) : null;
+
+        if ($source === null) {
+            throw new InvalidArgumentException("{$path}: unknown question source ".json_encode($value).'.');
+        }
+
+        return $source;
+    }
+
+    /**
      * @param  array<string, mixed>  $question
      */
-    private function validateQuestion(array $question, string $path, int $index): void
+    private function validateQuestion(array $question, QuestionSource $source, string $path, int $index): void
     {
         $fail = fn (string $reason): InvalidArgumentException => new InvalidArgumentException("{$path}, question #{$index}: {$reason}");
 
-        foreach (['en', 'el'] as $locale) {
+        $hasGreek = isset($question['text']['el']) || isset($question['answers']['el']);
+        $locales = $source === QuestionSource::OpenTdb && ! $hasGreek ? ['en'] : ['en', 'el'];
+
+        foreach ($locales as $locale) {
             $text = $question['text'][$locale] ?? null;
             $answers = $question['answers'][$locale] ?? null;
 

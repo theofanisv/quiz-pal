@@ -94,7 +94,7 @@
                         wire:key="source-{{ $source->value }}"
                         :value="$source->value"
                         :label="$source->label()"
-                        :description="$synced ? $source->description() : __('Not synced yet: run php artisan quiz:sync-opentdb on the server.')"
+                        :description="$synced ? $source->description() : __('Not imported yet: run php artisan db:seed --class=QuestionSeeder on the server.')"
                         :disabled="! $synced"
                     />
                 @endforeach

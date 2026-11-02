@@ -23,7 +23,7 @@ enum QuestionSource: string
     {
         return match ($this) {
             self::Custom => __('Bilingual questions written for QuizPal.'),
-            self::OpenTdb => __('Thousands of community questions, in English only.'),
+            self::OpenTdb => __('Community questions from Open Trivia DB; the ones not translated yet show in English.'),
         };
     }
 }

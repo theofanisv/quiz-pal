@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Questions\ImportQuestions;
+use App\Enums\QuestionSource;
 use App\Models\Category;
 use App\Models\Question;
 
@@ -54,4 +55,75 @@ it('imports every bundled category file and rejects duplicate questions across t
         ->and(Question::query()->count())->toBe($result['questions'])
         ->and(Question::query()->pluck('text_en')->map(fn (string $text): string => mb_strtolower($text))->duplicates())->toBeEmpty()
         ->and(Category::query()->count())->toBe(10);
+});
+
+/**
+ * Write a question file to a temporary path.
+ *
+ * @param  array<string, mixed>  $data
+ */
+function writeQuestionFile(array $data): string
+{
+    $path = tempnam(sys_get_temp_dir(), 'questions').'.json';
+    file_put_contents($path, json_encode($data, JSON_UNESCAPED_UNICODE));
+
+    return $path;
+}
+
+it('imports an open trivia db snapshot file, tagging the category and accepting english-only questions', function () {
+    $count = app(ImportQuestions::class)->handleFile(base_path('tests/Fixtures/questions/opentdb-sample.json'));
+
+    $category = Category::query()->where('slug', 'opentdb-13')->sole();
+    $englishOnly = Question::query()->where('text_en', 'Who composed the musical "Cats"?')->sole();
+    $translated = Question::query()->where('text_en', 'In which city is the musical "Chicago" set?')->sole();
+    expect($count)->toBe(2)
+        ->and($category->source)->toBe(QuestionSource::OpenTdb)
+        ->and($category->external_id)->toBe(13)
+        ->and($category->name_el)->toBe('Ψυχαγωγία: Μιούζικαλ & Θέατρο')
+        ->and($englishOnly->text_el)->toBeNull()
+        ->and($englishOnly->answers_el)->toBeNull()
+        ->and($englishOnly->answers_en)->toBe(['Andrew Lloyd Webber', 'Stephen Sondheim', 'Lin-Manuel Miranda', 'Claude-Michel Schönberg'])
+        ->and($englishOnly->correct_index)->toBe(0)
+        ->and($translated->text_el)->toBe('Σε ποια πόλη διαδραματίζεται το μιούζικαλ «Chicago»;')
+        ->and($translated->answers_el)->toBe(['Σικάγο', 'Νέα Υόρκη', 'Βοστώνη', 'Λος Άντζελες']);
+});
+
+it('still requires greek text for the built-in questions', function () {
+    $path = writeQuestionFile([
+        'category' => ['slug' => 'builtin', 'name' => ['en' => 'Built-in', 'el' => 'Ενσωματωμένη']],
+        'questions' => [['text' => ['en' => 'Pick one'], 'answers' => ['en' => ['a', 'b', 'c', 'd']], 'correct' => 0]],
+    ]);
+
+    expect(fn () => app(ImportQuestions::class)->handleFile($path))
+        ->toThrow(InvalidArgumentException::class, 'missing el text');
+});
+
+it('rejects a snapshot question whose greek text comes without greek answers', function () {
+    $path = writeQuestionFile([
+        'category' => ['slug' => 'opentdb-9', 'source' => 'opentdb', 'external_id' => 9, 'name' => ['en' => 'General', 'el' => 'Γενικά']],
+        'questions' => [['text' => ['en' => 'Pick one', 'el' => 'Διάλεξε'], 'answers' => ['en' => ['a', 'b', 'c', 'd']], 'correct' => 0]],
+    ]);
+
+    expect(fn () => app(ImportQuestions::class)->handleFile($path))
+        ->toThrow(InvalidArgumentException::class, 'el answers');
+});
+
+it('rejects an unknown question source', function () {
+    $path = writeQuestionFile([
+        'category' => ['slug' => 'wiki', 'source' => 'wikipedia', 'name' => ['en' => 'Wiki', 'el' => 'Βίκι']],
+        'questions' => [],
+    ]);
+
+    expect(fn () => app(ImportQuestions::class)->handleFile($path))
+        ->toThrow(InvalidArgumentException::class, 'source');
+});
+
+it('imports the built-in bank and the open trivia db snapshot together', function () {
+    $snapshotFiles = count(glob(database_path('data/opentdb/*.json')) ?: []);
+
+    $result = app(ImportQuestions::class)->handleBundled();
+
+    expect($result['files'])->toBe(10 + $snapshotFiles)
+        ->and(Category::query()->forSource(QuestionSource::Custom)->count())->toBe(10)
+        ->and(Category::query()->forSource(QuestionSource::OpenTdb)->count())->toBe($snapshotFiles);
 });

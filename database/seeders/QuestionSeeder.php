@@ -9,7 +9,7 @@ class QuestionSeeder extends Seeder
 {
     public function run(ImportQuestions $importQuestions): void
     {
-        $result = $importQuestions->handleDirectory(database_path('data/questions'));
+        $result = $importQuestions->handleBundled();
 
         $this->command?->info("Imported {$result['questions']} questions from {$result['files']} category files.");
     }

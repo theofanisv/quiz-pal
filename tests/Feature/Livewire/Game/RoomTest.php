@@ -157,7 +157,7 @@ describe('lobby', function () {
             ->assertSee('Question source')
             ->assertSee('Greek History')
             ->assertDontSee('Science: Computers')
-            ->assertDontSee('Not synced yet')
+            ->assertDontSee('Not imported yet')
             ->set('questionSource', 'opentdb')
             ->assertHasNoErrors()
             ->assertSee('Science: Computers')
@@ -168,14 +168,14 @@ describe('lobby', function () {
             ->and($room->categories->pluck('id')->all())->toBe([$trivia->id]);
     });
 
-    it('tells the admin to sync open trivia db before it can be chosen', function () {
+    it('tells the admin to import the open trivia db snapshot before it can be chosen', function () {
         $room = Room::factory()->withAdmin()->create();
         $room->categories()->attach(Category::factory()->create());
 
         Livewire::actingAs($room->admin, 'player')
             ->test(RoomPage::class, ['room' => $room])
             ->assertSee('Open Trivia DB')
-            ->assertSee('Not synced yet');
+            ->assertSee('Not imported yet');
     });
 
     it('shows the question source to the other players', function () {
