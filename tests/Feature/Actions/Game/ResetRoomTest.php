@@ -26,7 +26,8 @@ it('sends a finished room back to the lobby with the same players', function () 
         ->and($room->current_round)->toBe(0)
         ->and($room->players)->toHaveCount(2)
         ->and($player->fresh()->score)->toBe(0)
-        ->and($player->fresh()->is_ready)->toBeFalse();
+        ->and($player->fresh()->is_ready)->toBeFalse()
+        ->and($player->fresh()->color)->toBe($player->color);
     assertDatabaseCount('rounds', 0);
     assertDatabaseCount('answers', 0);
     Event::assertDispatched(RoomUpdated::class, fn (RoomUpdated $event) => $event->reason === 'reset');

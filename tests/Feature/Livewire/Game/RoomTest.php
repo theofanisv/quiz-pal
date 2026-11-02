@@ -86,6 +86,7 @@ describe('lobby', function () {
             ->test(RoomPage::class, ['room' => $room])
             ->assertSee('Maria')
             ->assertSee('Nikos')
+            ->assertSeeHtml('data-player-color="'.$player->color->value.'"')
             ->assertSee(route('rooms.show', $room))
             ->assertSee('Ready! Tap to undo')
             ->assertSee('Waiting for Maria to start the game.')
@@ -287,6 +288,7 @@ describe('playing', function () {
             ->assertSeeInOrder(['Venus', 'Mars', 'Jupiter', 'Saturn'])
             ->assertSee('Time left')
             ->assertSee('Thinking…')
+            ->assertSeeHtml('data-player-color="'.$player->color->value.'"')
             ->assertDontSee('Next question');
     });
 
@@ -297,9 +299,71 @@ describe('playing', function () {
             ->test(RoomPage::class, ['room' => $room])
             ->call('answer', 1)
             ->assertSee('Answered')
+            ->assertSeeHtml('data-state="selected"')
             ->assertDontSee('Scores');
 
         expect($round->answers()->where('player_id', $player->id)->sole()->is_correct)->toBeTrue();
+    });
+
+    it('marks the correct answer and the chosen wrong answer after the reveal', function () {
+        [$room, $round, $player] = roomInPlay();
+        Livewire::actingAs($player, 'player')->test(RoomPage::class, ['room' => $room])->call('answer', 1);
+
+        Livewire::actingAs($room->admin, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->call('answer', 0)
+            ->assertSeeHtmlInOrder(['data-choice="0"', 'data-state="wrong"'])
+            ->assertSeeHtmlInOrder(['data-choice="1"', 'data-state="correct"'])
+            ->assertSeeHtml('data-state="dim"');
+    });
+
+    it('shows who picked each answer after the reveal', function () {
+        [$room, $round, $player] = roomInPlay();
+        Livewire::actingAs($player, 'player')->test(RoomPage::class, ['room' => $room])->call('answer', 1);
+
+        Livewire::actingAs($room->admin, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->call('answer', 0)
+            ->assertSeeHtmlInOrder(['Mars', 'data-picked-by', 'data-player-color="'.$player->color->value.'"']);
+    });
+
+    it('keeps the server state when the answer is rejected', function () {
+        [$room, $round, $player] = roomInPlay();
+        $round->update(['revealed_at' => now()]);
+
+        Livewire::actingAs($player, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->call('answer', 0)
+            ->assertSeeHtmlInOrder(['data-choice="0"', 'data-state="dim"'])
+            ->assertDontSeeHtml('data-state="selected"')
+            ->assertDontSeeHtml('data-state="wrong"');
+
+        expect($round->answers()->count())->toBe(0);
+    });
+
+    it('cues the right sound for each player after the reveal', function () {
+        [$room, $round, $player] = roomInPlay();
+        Livewire::actingAs($player, 'player')->test(RoomPage::class, ['room' => $room])->call('answer', 1);
+
+        Livewire::actingAs($room->admin, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->call('answer', 0)
+            ->assertSeeHtml('data-sound-cue="wrong"')
+            ->assertDontSeeHtml('data-sound-cue="correct"');
+
+        Livewire::actingAs($player, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->assertSeeHtml('data-sound-cue="correct"')
+            ->assertDontSeeHtml('data-sound-cue="wrong"');
+    });
+
+    it('does not cue a reveal sound while the round is open', function () {
+        [$room, $round, $player] = roomInPlay();
+
+        Livewire::actingAs($player, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->call('answer', 1)
+            ->assertDontSeeHtml('data-sound-cue');
     });
 
     it('reveals the answers and the scores once everyone has answered', function () {
@@ -386,7 +450,7 @@ describe('playing', function () {
     it('shows the final results after the last round', function () {
         $room = Room::factory()->playing(1)->withAdmin('Maria')->create(['total_rounds' => 1]);
         $room->admin->update(['score' => 800]);
-        Player::factory()->for($room)->create(['name' => 'Nikos', 'score' => 1200]);
+        $nikos = Player::factory()->for($room)->create(['name' => 'Nikos', 'score' => 1200]);
         Round::factory()->for($room)->revealed()->create(['round_number' => 1]);
 
         Livewire::actingAs($room->admin, 'player')
@@ -395,6 +459,7 @@ describe('playing', function () {
             ->assertSee('Final results')
             ->assertSee('Nikos wins!')
             ->assertSeeInOrder(['Nikos', '1200', 'Maria', '800'])
+            ->assertSeeHtml('data-player-color="'.$nikos->color->value.'"')
             ->assertSee('Play again');
     });
 

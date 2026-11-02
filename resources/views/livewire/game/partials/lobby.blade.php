@@ -2,15 +2,14 @@
     $everyoneReady = $room->everyoneReady();
 @endphp
 
-<div class="flex flex-col gap-6">
-    <flux:card class="flex flex-col gap-4">
+<div class="flex flex-col gap-6" x-data="gameScreen('lobby')">
+    <flux:card class="flex flex-col gap-4 rounded-3xl">
         <div class="flex items-start justify-between gap-4">
-            <div>
-                <flux:text>{{ __('Room code') }}</flux:text>
-                <flux:heading size="xl" level="1" class="tracking-[0.3em]">{{ $room->code }}</flux:heading>
-            </div>
+            <x-game.room-code :code="$room->code" />
 
-            <x-qr-code :url="$shareUrl" :size="112" class="shrink-0" />
+            <div class="shrink-0 rounded-2xl bg-white p-2">
+                <x-qr-code :url="$shareUrl" :size="104" />
+            </div>
         </div>
 
         <flux:input :value="$shareUrl" readonly copyable :label="__('Share this link')" />
@@ -18,52 +17,47 @@
         <flux:text class="text-sm">{{ __('Friends can scan the code or open the link to join.') }}</flux:text>
     </flux:card>
 
-    <flux:card class="flex flex-col gap-3">
-        <flux:heading size="lg" level="2">{{ __('Players') }} ({{ $players->count() }})</flux:heading>
+    <flux:card class="flex flex-col gap-4 rounded-3xl">
+        <h2 class="font-display text-lg font-bold">{{ __('Players') }} ({{ $players->count() }})</h2>
 
-        <ul class="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-700">
+        <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3">
             @foreach ($players as $member)
-                <li wire:key="player-{{ $member->id }}" class="flex items-center gap-3 py-2">
-                    <flux:avatar :name="$member->name" size="sm" />
-
-                    <div class="flex min-w-0 flex-1 items-center gap-2">
-                        <span class="truncate font-medium">{{ $member->name }}</span>
-
-                        @if ($room->isAdmin($member))
-                            <flux:icon.crown class="size-4 shrink-0 text-amber-500" aria-label="{{ __('Admin') }}" />
-                        @endif
-
-                        @if ($member->is($player))
-                            <flux:badge size="sm">{{ __('You') }}</flux:badge>
-                        @endif
-
+                <li wire:key="player-{{ $member->id }}" class="flex">
+                    <x-game.player-chip
+                        :player="$member"
+                        :you="$member->is($player)"
+                        :admin="$room->isAdmin($member)"
+                        :muted="! $member->is_connected"
+                        :class="$member->is_ready ? 'w-full border-win/60 glow [--glow:var(--color-win)]' : 'w-full'"
+                    >
                         @unless ($member->is_connected)
                             <flux:badge size="sm" color="zinc">{{ __('Away') }}</flux:badge>
                         @endunless
-                    </div>
 
-                    @if ($member->is_ready)
-                        <flux:badge color="green" size="sm" icon="check">{{ __('Ready') }}</flux:badge>
-                    @else
-                        <flux:badge color="zinc" size="sm">{{ __('Not ready') }}</flux:badge>
-                    @endif
+                        @if ($member->is_ready)
+                            <flux:badge color="green" size="sm" icon="check">{{ __('Ready') }}</flux:badge>
+                        @else
+                            <flux:badge color="zinc" size="sm">{{ __('Not ready') }}</flux:badge>
+                        @endif
 
-                    @if ($isAdmin && ! $room->isAdmin($member))
-                        <flux:button
-                            size="xs"
-                            variant="ghost"
-                            icon="x-mark"
-                            wire:click="removePlayer({{ $member->id }})"
-                            :aria-label="__('Remove :name', ['name' => $member->name])"
-                        />
-                    @endif
+                        @if ($isAdmin && ! $room->isAdmin($member))
+                            <flux:button
+                                size="xs"
+                                variant="ghost"
+                                icon="x-mark"
+                                class="absolute top-1 right-1"
+                                wire:click="removePlayer({{ $member->id }})"
+                                :aria-label="__('Remove :name', ['name' => $member->name])"
+                            />
+                        @endif
+                    </x-game.player-chip>
                 </li>
             @endforeach
         </ul>
     </flux:card>
 
-    <flux:card class="flex flex-col gap-4">
-        <flux:heading size="lg" level="2">{{ __('Game settings') }}</flux:heading>
+    <flux:card class="flex flex-col gap-4 rounded-3xl">
+        <h2 class="font-display text-lg font-bold">{{ __('Game settings') }}</h2>
 
         @if ($isAdmin)
             <div class="grid grid-cols-2 gap-4">
@@ -107,16 +101,16 @@
             </flux:checkbox.group>
         @else
             <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-                <dt class="text-zinc-500 dark:text-zinc-400">{{ __('Rounds') }}</dt>
+                <dt class="text-ink-muted">{{ __('Rounds') }}</dt>
                 <dd class="font-medium">{{ $room->total_rounds }}</dd>
 
-                <dt class="text-zinc-500 dark:text-zinc-400">{{ __('Seconds per question') }}</dt>
+                <dt class="text-ink-muted">{{ __('Seconds per question') }}</dt>
                 <dd class="font-medium">{{ $room->seconds_per_question }}</dd>
 
-                <dt class="text-zinc-500 dark:text-zinc-400">{{ __('Question source') }}</dt>
+                <dt class="text-ink-muted">{{ __('Question source') }}</dt>
                 <dd class="font-medium">{{ $room->question_source->label() }}</dd>
 
-                <dt class="text-zinc-500 dark:text-zinc-400">{{ __('Categories') }}</dt>
+                <dt class="text-ink-muted">{{ __('Categories') }}</dt>
                 <dd class="font-medium">{{ $room->categories->pluck('name')->join(', ') }}</dd>
             </dl>
         @endif
@@ -134,6 +128,7 @@
     <div class="flex flex-col gap-3">
         <flux:button
             wire:click="toggleReady"
+            x-on:click="$store.sound.play('click')"
             :variant="$player->is_ready ? 'filled' : 'primary'"
             :icon="$player->is_ready ? 'check' : null"
             class="w-full"
@@ -145,10 +140,10 @@
         @if ($isAdmin)
             <flux:button
                 wire:click="startGame"
+                x-on:click="$store.sound.play('click')"
                 variant="primary"
-                color="green"
                 icon="play"
-                class="w-full"
+                class="w-full [--color-accent:var(--color-win)] [--color-accent-content:var(--color-win)] [--color-accent-foreground:var(--color-night-950)]"
                 :disabled="! $everyoneReady || ! $liveUpdatesAvailable"
                 data-test="start-button"
             >

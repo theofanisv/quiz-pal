@@ -6,6 +6,7 @@ use App\Actions\Game\Concerns\BroadcastsRoomUpdates;
 use App\Exceptions\GameException;
 use App\Models\Player;
 use App\Models\Room;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -40,17 +41,35 @@ class JoinRoom
             ]);
         }
 
-        $player = $room->players()->create([
-            'name' => $validated['name'],
-            'score' => 0,
-            'is_ready' => false,
-            'is_connected' => true,
-            'last_seen_at' => now(),
-        ]);
+        $player = $this->createPlayer($room, $validated['name']);
 
         $this->announce($room, 'player-joined');
 
         return $player;
+    }
+
+    /**
+     * The player's colour is picked at insert time (see Player::booted). Two people
+     * joining at the same instant can pick the same one; the unique index catches
+     * that and the second insert simply picks again.
+     */
+    private function createPlayer(Room $room, string $name, bool $retry = true): Player
+    {
+        try {
+            return $room->players()->create([
+                'name' => $name,
+                'score' => 0,
+                'is_ready' => false,
+                'is_connected' => true,
+                'last_seen_at' => now(),
+            ]);
+        } catch (UniqueConstraintViolationException $exception) {
+            if (! $retry) {
+                throw $exception;
+            }
+
+            return $this->createPlayer($room, $name, retry: false);
+        }
     }
 
     private function nameIsTaken(Room $room, string $name): bool
