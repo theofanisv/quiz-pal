@@ -56,3 +56,9 @@ it('shows an error for a code that does not exist', function () {
         ->assertSee('No room was found with that code.')
         ->assertNoRedirect();
 });
+
+it('links the web app manifest and theme colour', function () {
+    get(route('home'))
+        ->assertSee('<link rel="manifest" href="/site.webmanifest">', false)
+        ->assertSee('<meta name="theme-color" content="#0b1020">', false);
+});
