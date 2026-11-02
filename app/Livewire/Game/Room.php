@@ -38,9 +38,9 @@ class Room extends Component
 
     public string $name = '';
 
-    public int $totalRounds = 10;
+    public ?int $totalRounds = null;
 
-    public int $secondsPerQuestion = 20;
+    public ?int $secondsPerQuestion = null;
 
     /** @var array<int, int> */
     public array $categories = [];

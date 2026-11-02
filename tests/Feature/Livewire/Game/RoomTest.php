@@ -130,6 +130,22 @@ describe('lobby', function () {
         expect($room->fresh()->total_rounds)->toBe(10);
     });
 
+    it('shows a validation error when the admin clears a number setting', function (string $property, string $message, string $column, int $kept) {
+        $room = Room::factory()->withAdmin()->create();
+        $room->categories()->attach(Category::factory()->create());
+
+        Livewire::actingAs($room->admin, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->set($property, null)
+            ->assertHasErrors($property)
+            ->assertSee($message);
+
+        expect($room->fresh()->{$column})->toBe($kept);
+    })->with([
+        'rounds' => ['totalRounds', 'The rounds field is required.', 'total_rounds', 10],
+        'seconds per question' => ['secondsPerQuestion', 'The seconds per question field is required.', 'seconds_per_question', 20],
+    ]);
+
     it('lets the admin remove a player', function () {
         $room = Room::factory()->withAdmin()->create();
         $player = Player::factory()->for($room)->create(['name' => 'Nikos']);

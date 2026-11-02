@@ -69,7 +69,7 @@
             <div class="grid grid-cols-2 gap-4">
                 <flux:input
                     type="number"
-                    wire:model.live.debounce.500ms="totalRounds"
+                    wire:model.live.number.debounce.500ms="totalRounds"
                     :label="__('Rounds')"
                     :min="\App\Models\Room::MIN_ROUNDS"
                     :max="\App\Models\Room::MAX_ROUNDS"
@@ -77,7 +77,7 @@
 
                 <flux:input
                     type="number"
-                    wire:model.live.debounce.500ms="secondsPerQuestion"
+                    wire:model.live.number.debounce.500ms="secondsPerQuestion"
                     :label="__('Seconds per question')"
                     :min="\App\Models\Room::MIN_SECONDS"
                     :max="\App\Models\Room::MAX_SECONDS"

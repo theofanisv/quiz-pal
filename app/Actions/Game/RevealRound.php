@@ -15,6 +15,12 @@ class RevealRound
     /**
      * Close the round and add the round points to the players' scores.
      * Safe to call concurrently: only the first caller reveals, the rest get false.
+     *
+     * The answers are read before the transaction starts on purpose. SQLite opens a
+     * deferred transaction with a read snapshot, and once any other request commits
+     * (an answer, a session, a presence update) the first write in that transaction
+     * fails immediately with "database is locked" instead of waiting for the lock.
+     * A transaction whose first statement is a write waits like any other writer.
      */
     public function handle(Round $round): bool
     {
@@ -29,12 +35,12 @@ class RevealRound
 
         $round->refresh();
 
-        DB::transaction(function () use ($round): void {
-            $round->answers()
-                ->where('points', '>', 0)
-                ->each(function (Answer $answer): void {
-                    Player::query()->whereKey($answer->player_id)->increment('score', $answer->points);
-                });
+        $answers = $round->answers()->where('points', '>', 0)->get();
+
+        DB::transaction(function () use ($answers): void {
+            $answers->each(function (Answer $answer): void {
+                Player::query()->whereKey($answer->player_id)->increment('score', $answer->points);
+            });
         });
 
         $this->announce($round->room, 'revealed');
