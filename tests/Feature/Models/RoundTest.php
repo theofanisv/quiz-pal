@@ -3,6 +3,7 @@
 use App\Models\Question;
 use App\Models\Round;
 
+use function Pest\Laravel\freezeSecond;
 use function Pest\Laravel\freezeTime;
 use function Pest\Laravel\travel;
 
@@ -56,4 +57,23 @@ it('is pending until the scheduled start moment, then open', function () {
         ->and($round->isOpen())->toBeTrue()
         ->and($round->secondsUntilStart())->toBe(0)
         ->and($round->secondsLeft())->toBe(20);
+});
+
+it('holds the move to the next round for two seconds after the reveal', function () {
+    freezeSecond();
+    $round = Round::factory()->started()->create();
+
+    expect($round->millisecondsUntilAdvance())->toBe(0);
+
+    $round->update(['revealed_at' => now()]);
+
+    expect($round->millisecondsUntilAdvance())->toBe(2000);
+
+    travel(1500)->milliseconds();
+
+    expect($round->millisecondsUntilAdvance())->toBe(500);
+
+    travel(1)->seconds();
+
+    expect($round->millisecondsUntilAdvance())->toBe(0);
 });

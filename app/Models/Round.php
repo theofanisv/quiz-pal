@@ -23,6 +23,12 @@ class Round extends Model
     public const int START_DELAY_SECONDS = 3;
 
     /**
+     * Milliseconds after the reveal before the admin can move on, so every player gets a
+     * moment to see the answers, even when the reveal broadcast reaches them late.
+     */
+    public const int ADVANCE_DELAY_MILLISECONDS = 2000;
+
+    /**
      * Millisecond precision so that speed scoring is fair.
      */
     protected $dateFormat = self::DATE_FORMAT;
@@ -114,6 +120,20 @@ class Round extends Model
         }
 
         return max(0, (int) ceil(now()->diffInMilliseconds($this->started_at, false) / 1000));
+    }
+
+    /**
+     * Milliseconds until the admin can move on from the reveal (never negative).
+     */
+    public function millisecondsUntilAdvance(): int
+    {
+        if ($this->revealed_at === null) {
+            return 0;
+        }
+
+        $advanceAt = $this->revealed_at->copy()->addMilliseconds(self::ADVANCE_DELAY_MILLISECONDS);
+
+        return max(0, (int) ceil(now()->diffInMilliseconds($advanceAt, false)));
     }
 
     /**

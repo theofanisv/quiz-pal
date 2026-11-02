@@ -387,7 +387,8 @@ describe('playing', function () {
             ->call('answer', 0)
             ->assertSee('Scores')
             ->assertSee('+1000')
-            ->assertSee('Next question');
+            ->assertSee('Next question')
+            ->assertSeeHtml('advanceButton({ waitMs: 2000 })');
 
         expect($player->fresh()->score)->toBe(1000)
             ->and($room->admin->fresh()->score)->toBe(0);

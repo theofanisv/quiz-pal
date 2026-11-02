@@ -149,7 +149,17 @@
             <span hidden wire:key="cue-{{ $round->id }}" data-sound-cue="{{ $cue }}" x-data x-init="$store.sound.play('{{ $cue }}')"></span>
 
             @if ($isAdmin)
-                <flux:button wire:click="nextRound" x-on:click="$store.sound.play('click')" variant="primary" class="w-full" icon-trailing="arrow-right" data-test="next-button">
+                <flux:button
+                    wire:click="nextRound"
+                    x-data="advanceButton({ waitMs: {{ $round->millisecondsUntilAdvance() }} })"
+                    x-bind:disabled="waiting"
+                    x-bind:data-flux-loading="waiting"
+                    x-on:click="$store.sound.play('click')"
+                    variant="primary"
+                    class="w-full"
+                    icon-trailing="arrow-right"
+                    data-test="next-button"
+                >
                     {{ $room->isLastRound() ? __('Show final results') : __('Next question') }}
                 </flux:button>
             @else

@@ -147,6 +147,28 @@ document.addEventListener('alpine:init', () => {
     }));
 
     /**
+     * The admin's "next question" button. It stays disabled with a loading spinner until a
+     * moment after the reveal (the server sends how long is left), so every player sees the
+     * answers before the game moves on. Flux shows its own spinner while the request runs.
+     */
+    window.Alpine.data('advanceButton', ({ waitMs }) => ({
+        waiting: waitMs > 0,
+        timer: null,
+
+        init() {
+            if (this.waiting) {
+                this.timer = setTimeout(() => {
+                    this.waiting = false;
+                }, waitMs);
+            }
+        },
+
+        destroy() {
+            clearTimeout(this.timer);
+        },
+    }));
+
+    /**
      * The final results screen: a confetti burst, bigger for the winners.
      */
     window.Alpine.data('resultsScreen', ({ winner }) => ({
