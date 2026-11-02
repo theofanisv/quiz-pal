@@ -231,8 +231,10 @@ process takes both apps' live updates down. A separate process costs 30 to 50 MB
 To deploy a new version run `composer update-app` from the application root as the user that owns the files (on this
 kind of server: `php8.3 /usr/local/bin/composer update-app`). The script backs up the database to
 `storage/app/private/backups` (keeping the last 10), fetches and resets the checkout to the remote branch, installs the
-Composer dependencies, runs `php artisan migrate --force` and the question seeder, rebuilds the caches with
-`php artisan optimize` and runs `php artisan reverb:restart`, so that Reverb picks up the new code. It does not build the
+Composer dependencies, runs `php artisan migrate --force` and the question seeder, runs the pending one-time operations
+(`php artisan operations:process --sync`, files in `database/operations`, created with `php artisan operations:make
+<Name>`), rebuilds the caches with `php artisan optimize` and runs `php artisan reverb:restart`, so that Reverb picks up
+the new code. It does not build the
 front-end: run `npm run build` locally and commit `public/build` before pushing, the update refuses to start when the
 incoming commit has no `public/build/manifest.json`. It also stops before touching anything when tracked files were
 modified on the server. The Reverb restart drops the players' live connections for a moment (they reconnect by

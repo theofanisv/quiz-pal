@@ -10,7 +10,8 @@
 #
 # Steps: back up the database, fetch, drop the cached bootstrap files, reset
 # the checkout to origin/<branch>, install Composer dependencies, migrate, seed
-# the question bank, rebuild the caches and restart Reverb. The front-end is
+# the question bank, run the pending one-time operations (database/operations),
+# rebuild the caches and restart Reverb. The front-end is
 # not built here: public/build is built locally and committed, and the update
 # refuses to start when the incoming commit does not contain it. It also stops
 # before touching anything when tracked files were modified on the server,
@@ -184,6 +185,10 @@ step "Migrating the database"
 
 step "Seeding the question bank"
 "$php_bin" artisan db:seed --class=QuestionSeeder --force
+
+step "Running one-time operations"
+# --sync: no queue worker runs on the server, and a queued operation would be marked as processed without running.
+"$php_bin" artisan operations:process --sync --no-interaction
 
 step "Rebuilding the caches"
 "$php_bin" artisan optimize
