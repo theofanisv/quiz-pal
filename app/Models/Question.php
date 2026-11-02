@@ -85,15 +85,16 @@ class Question extends Model
     }
 
     /**
-     * The questions shown least often first; among equals, the one shown longest ago, so a category is used up
-     * before any question comes back. Questions never shown come in random order.
+     * Questions never shown first, in random order, then the one shown longest ago, so a question comes back only
+     * after every other question of its category was shown since. Ordering by recency rather than by
+     * `times_shown` keeps a question added later from repeating game after game until its count catches up.
      *
      * @param  Builder<Question>  $query
      */
     #[Scope]
-    protected function leastShownFirst(Builder $query): void
+    protected function leastRecentlyShownFirst(Builder $query): void
     {
-        $query->orderBy('times_shown')->orderBy('last_shown_at')->inRandomOrder();
+        $query->orderBy('last_shown_at')->inRandomOrder();
     }
 
     /**

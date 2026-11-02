@@ -131,7 +131,7 @@ it('does not count questions that wait for review as available', function () {
     expect($room->fresh()->status)->toBe(RoomStatus::Lobby);
 });
 
-it('takes the questions shown least often', function () {
+it('takes questions never shown before the ones already shown', function () {
     $room = Room::factory()->withAdmin()->create(['total_rounds' => 2]);
     $room->admin->update(['is_ready' => true]);
     $category = Category::factory()->create();
@@ -144,11 +144,11 @@ it('takes the questions shown least often', function () {
     expect($room->rounds()->pluck('question_id')->sort()->values()->all())->toBe($unseen->pluck('id')->sort()->values()->all());
 });
 
-it('takes the question shown longest ago when questions were shown equally often', function () {
+it('takes the question shown longest ago even when a recent one was shown fewer times', function () {
     $room = Room::factory()->withAdmin()->create(['total_rounds' => 1]);
     $room->admin->update(['is_ready' => true]);
     $category = Category::factory()->create();
-    $shownLongAgo = Question::factory()->for($category)->shown(1, now()->subDay())->create();
+    $shownLongAgo = Question::factory()->for($category)->shown(5, now()->subDay())->create();
     Question::factory()->for($category)->shown(1, now()->subHour())->create();
     $room->categories()->attach($category);
 
