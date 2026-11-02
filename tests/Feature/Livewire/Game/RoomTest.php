@@ -566,4 +566,27 @@ describe('finished', function () {
         expect($room->fresh()->status)->toBe(RoomStatus::Lobby)
             ->and($room->players()->sum('score'))->toBe(0);
     });
+
+    it('shows how many questions each player answered correctly', function () {
+        $room = Room::factory()->finished()->withAdmin('Maria')->create(['total_rounds' => 2]);
+        [$first, $second] = Round::factory()->for($room)->revealed()->count(2)->sequence(['round_number' => 1], ['round_number' => 2])->create();
+        $nikos = Player::factory()->for($room)->create(['name' => 'Nikos', 'score' => 1500]);
+        $eleni = Player::factory()->for($room)->create(['name' => 'Eleni', 'score' => 900]);
+        $kostas = Player::factory()->for($room)->create(['name' => 'Kostas', 'score' => 400]);
+        Answer::factory()->for($first)->for($nikos)->create(['is_correct' => true]);
+        Answer::factory()->for($second)->for($nikos)->create(['is_correct' => true]);
+        Answer::factory()->for($first)->for($eleni)->create(['is_correct' => true]);
+        Answer::factory()->for($second)->for($eleni)->create(['is_correct' => false]);
+        Answer::factory()->for($second)->for($kostas)->create(['is_correct' => true]);
+        Answer::factory()->for($first)->for($room->admin)->create(['is_correct' => false]);
+
+        Livewire::actingAs($room->admin, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->assertSeeInOrder([
+                'Nikos', '1500', '2/2 correct',
+                'Eleni', '900', '1/2 correct',
+                'Kostas', '400', '1/2 correct',
+                'Maria', '0/2 correct',
+            ]);
+    });
 });

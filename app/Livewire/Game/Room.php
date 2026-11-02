@@ -273,6 +273,10 @@ class Room extends Component
         $players = $this->room->players;
         $inLobby = $this->room->isInLobby();
 
+        if ($this->room->isFinished()) {
+            $players->loadCount('correctAnswers');
+        }
+
         return view('livewire.game.room', [
             'player' => $player,
             'isAdmin' => $player !== null && $this->room->isAdmin($player),

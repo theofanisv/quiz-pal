@@ -1,8 +1,9 @@
 {{--
     The final standings: the top three on a podium (first in the middle, drawn tallest),
-    everyone else in rows below. The DOM keeps rank order; CSS `order` arranges the columns.
+    everyone else in rows below, each with how many questions they answered correctly.
+    The DOM keeps rank order; CSS `order` arranges the columns.
 --}}
-@props(['leaderboard', 'player'])
+@props(['leaderboard', 'player', 'totalRounds'])
 
 @php
     $top = $leaderboard->take(3)->values();
@@ -37,7 +38,10 @@
                     @endif
                 </span>
 
-                <span class="font-display text-xl font-bold tabular-nums">{{ $member->score }}</span>
+                <div class="flex flex-col items-center">
+                    <span class="font-display text-xl font-bold tabular-nums">{{ $member->score }}</span>
+                    <span class="text-xs text-ink-muted tabular-nums">{{ __(':correct/:total correct', ['correct' => $member->correct_answers_count, 'total' => $totalRounds]) }}</span>
+                </div>
 
                 <div
                     class="{{ $column['height'] }} flex w-full origin-bottom items-start justify-center rounded-t-2xl bg-(--player-color) pt-2 font-display text-2xl font-bold text-night-950 motion-safe:animate-rise"
@@ -61,6 +65,7 @@
                             <span class="font-normal text-ink-muted">({{ __('you') }})</span>
                         @endif
                     </span>
+                    <span class="text-xs text-ink-muted tabular-nums">{{ __(':correct/:total correct', ['correct' => $member->correct_answers_count, 'total' => $totalRounds]) }}</span>
                     <span class="font-display text-lg font-bold tabular-nums">{{ $member->score }}</span>
                 </li>
             @endforeach

@@ -69,6 +69,14 @@ class Player extends Model implements Authenticatable
         return $this->hasMany(Answer::class);
     }
 
+    /**
+     * @return HasMany<Answer, $this>
+     */
+    public function correctAnswers(): HasMany
+    {
+        return $this->answers()->where('is_correct', true);
+    }
+
     public function isAdminOf(Room $room): bool
     {
         return $room->isAdmin($this);

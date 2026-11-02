@@ -57,6 +57,7 @@
     "Final results": "Τελικά αποτελέσματα",
     "It's a tie between :names!": "Ισοπαλία ανάμεσα σε :names!",
     ":name wins!": "Νικητής: :name!",
+    ":correct/:total correct": ":correct/:total σωστές",
     "Play again": "Παίξτε ξανά",
     "Waiting for :name to start a new game.": "Περιμένουμε τον/την :name να ξεκινήσει νέο παιχνίδι.",
     "Language": "Γλώσσα",
