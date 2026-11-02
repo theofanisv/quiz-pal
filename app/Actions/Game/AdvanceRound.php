@@ -15,7 +15,7 @@ class AdvanceRound
     public function __construct(private StartRound $startRound) {}
 
     /**
-     * Move on from a revealed round: open the next one, or finish the game after the last.
+     * Move on from a revealed round: open the next one, or finish the room and its game after the last.
      *
      * @throws GameException
      */
@@ -37,6 +37,7 @@ class AdvanceRound
 
         if ($room->isLastRound()) {
             $room->update(['status' => RoomStatus::Finished]);
+            $room->currentGame->update(['finished_at' => now()]);
 
             $this->announce($room, 'finished');
 

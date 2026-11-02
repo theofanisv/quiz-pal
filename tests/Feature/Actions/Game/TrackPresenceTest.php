@@ -27,7 +27,7 @@ it('marks a joining player connected again', function () {
 
 it('reveals the open round when the leaving player was the only one still to answer', function () {
     $room = Room::factory()->playing()->withAdmin()->create();
-    $round = Round::factory()->for($room)->started()->create();
+    $round = Round::factory()->forRoom($room)->started()->create();
     $leaver = Player::factory()->for($room)->create();
     Answer::factory()->for($round)->for($room->admin)->create(['is_correct' => true, 'points' => 600]);
 
@@ -40,7 +40,7 @@ it('reveals the open round when the leaving player was the only one still to ans
 
 it('keeps the round open when the leaving player was not the last one pending', function () {
     $room = Room::factory()->playing()->withAdmin()->create();
-    $round = Round::factory()->for($room)->started()->create();
+    $round = Round::factory()->forRoom($room)->started()->create();
     $leaver = Player::factory()->for($room)->create();
     Player::factory()->for($room)->create();
 

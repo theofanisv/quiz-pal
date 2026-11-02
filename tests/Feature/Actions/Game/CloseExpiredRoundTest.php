@@ -9,7 +9,7 @@ use function Pest\Laravel\travel;
 
 it('leaves the round open while time remains', function () {
     freezeTime();
-    $round = Round::factory()->for(Room::factory()->playing())->started(20)->create();
+    $round = Round::factory()->forRoom(Room::factory()->playing()->create())->started(20)->create();
     travel(19)->seconds();
 
     $closed = app(CloseExpiredRound::class)->handle($round);
@@ -20,7 +20,7 @@ it('leaves the round open while time remains', function () {
 
 it('reveals the round once the timer has run out', function () {
     freezeTime();
-    $round = Round::factory()->for(Room::factory()->playing())->started(20)->create();
+    $round = Round::factory()->forRoom(Room::factory()->playing()->create())->started(20)->create();
     travel(20)->seconds();
 
     $closed = app(CloseExpiredRound::class)->handle($round);

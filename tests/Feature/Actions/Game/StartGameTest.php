@@ -1,16 +1,20 @@
 <?php
 
 use App\Actions\Game\StartGame;
+use App\Enums\QuestionSource;
 use App\Enums\RoomStatus;
 use App\Events\RoomUpdated;
 use App\Exceptions\GameException;
 use App\Models\Category;
+use App\Models\Game;
 use App\Models\Player;
 use App\Models\Question;
 use App\Models\Room;
+use App\Models\Round;
 use App\Support\LiveUpdates;
 use Illuminate\Support\Facades\Event;
 
+use function Pest\Laravel\assertModelExists;
 use function Pest\Laravel\freezeSecond;
 use function Pest\Laravel\mock;
 
@@ -28,7 +32,7 @@ it('creates every round from the chosen categories and opens the first one', fun
     app(StartGame::class)->handle($room, $room->admin);
 
     $room->refresh();
-    $rounds = $room->rounds;
+    $rounds = $room->currentGame->rounds;
     expect($room->status)->toBe(RoomStatus::Playing)
         ->and($room->current_round)->toBe(1)
         ->and($room->admin->score)->toBe(0)
@@ -69,6 +73,24 @@ it('refuses to start while a connected player is not ready', function () {
     expect($room->fresh()->status)->toBe(RoomStatus::Lobby);
 });
 
+it('records the game with the room settings and keeps the games played before', function () {
+    $room = Room::factory()->withAdmin()->create(['question_source' => QuestionSource::OpenTdb, 'total_rounds' => 2, 'seconds_per_question' => 15]);
+    $room->admin->update(['is_ready' => true]);
+    $room->categories()->attach(Category::factory()->openTdb(9)->has(Question::factory()->count(2))->create());
+    $earlier = Game::factory()->forRoom($room)->finished()->create();
+    $earlierRound = Round::factory()->for($earlier)->revealed()->create();
+
+    app(StartGame::class)->handle($room, $room->admin);
+
+    $game = $room->refresh()->currentGame;
+    expect($game->isNot($earlier))->toBeTrue()
+        ->and($game->only(['question_source', 'total_rounds', 'seconds_per_question', 'finished_at']))
+        ->toBe(['question_source' => QuestionSource::OpenTdb, 'total_rounds' => 2, 'seconds_per_question' => 15, 'finished_at' => null])
+        ->and($game->rounds()->count())->toBe(2)
+        ->and($room->currentRound()->game_id)->toBe($game->id);
+    assertModelExists($earlierRound);
+});
+
 it('refuses to start when the chosen categories hold fewer questions than rounds', function () {
     $room = Room::factory()->withAdmin()->create(['total_rounds' => 5]);
     $room->admin->update(['is_ready' => true]);
@@ -78,7 +100,7 @@ it('refuses to start when the chosen categories hold fewer questions than rounds
     expect(fn () => app(StartGame::class)->handle($room, $room->admin))
         ->toThrow(GameException::class, 'Only 3 questions are available for the chosen categories. Choose more categories or fewer rounds.');
 
-    expect($room->rounds()->count())->toBe(0);
+    expect($room->games()->count())->toBe(0);
 });
 
 it('forbids players other than the admin', function () {
@@ -100,7 +122,7 @@ it('refuses to start while live updates are unavailable', function () {
         ->toThrow(GameException::class, 'Live updates are unavailable, so the game cannot start right now.');
 
     expect($room->fresh()->status)->toBe(RoomStatus::Lobby)
-        ->and($room->rounds()->count())->toBe(0);
+        ->and($room->games()->count())->toBe(0);
 });
 
 it('leaves out questions that wait for review', function () {
@@ -114,7 +136,7 @@ it('leaves out questions that wait for review', function () {
 
     app(StartGame::class)->handle($room, $room->admin);
 
-    expect($room->rounds()->pluck('question_id')->sort()->values()->all())->toBe([$playable->id, $verified->id]);
+    expect($room->currentGame->rounds()->pluck('question_id')->sort()->values()->all())->toBe([$playable->id, $verified->id]);
 });
 
 it('does not count questions that wait for review as available', function () {
@@ -141,7 +163,7 @@ it('takes questions never shown before the ones already shown', function () {
 
     app(StartGame::class)->handle($room, $room->admin);
 
-    expect($room->rounds()->pluck('question_id')->sort()->values()->all())->toBe($unseen->pluck('id')->sort()->values()->all());
+    expect($room->currentGame->rounds()->pluck('question_id')->sort()->values()->all())->toBe($unseen->pluck('id')->sort()->values()->all());
 });
 
 it('takes the question shown longest ago even when a recent one was shown fewer times', function () {
@@ -154,7 +176,7 @@ it('takes the question shown longest ago even when a recent one was shown fewer 
 
     app(StartGame::class)->handle($room, $room->admin);
 
-    expect($room->rounds()->pluck('question_id')->all())->toBe([$shownLongAgo->id]);
+    expect($room->currentGame->rounds()->pluck('question_id')->all())->toBe([$shownLongAgo->id]);
 });
 
 it('counts only the first question as shown when the game starts', function () {
@@ -165,7 +187,7 @@ it('counts only the first question as shown when the game starts', function () {
 
     app(StartGame::class)->handle($room, $room->admin);
 
-    [$first, $second] = $room->rounds()->orderBy('round_number')->with('question')->get()->map->question;
+    [$first, $second] = $room->currentGame->rounds()->orderBy('round_number')->with('question')->get()->map->question;
     expect($first->times_shown)->toBe(1)
         ->and($first->last_shown_at->equalTo(now()->addSeconds(3)))->toBeTrue();
     expect($second->times_shown)->toBe(0)

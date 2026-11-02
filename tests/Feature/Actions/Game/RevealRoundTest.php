@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\File;
 
 it('adds each answer\'s points to its player only once', function () {
     $room = Room::factory()->playing()->withAdmin()->create();
-    $round = Round::factory()->for($room)->started()->create();
+    $round = Round::factory()->forRoom($room)->started()->create();
     $player = Player::factory()->for($room)->create(['score' => 100]);
     Answer::factory()->for($round)->for($player)->create(['is_correct' => true, 'points' => 750]);
     Answer::factory()->for($round)->for($room->admin)->create(['is_correct' => false, 'points' => 0]);
@@ -41,7 +41,7 @@ it('adds the points even when another answer is saved during the reveal', functi
     Artisan::call('migrate', ['--database' => 'game']);
     DB::setDefaultConnection('game');
     $room = Room::factory()->playing()->withAdmin()->create();
-    $round = Round::factory()->for($room)->started()->create();
+    $round = Round::factory()->forRoom($room)->started()->create();
     $player = Player::factory()->for($room)->create(['score' => 100]);
     Answer::factory()->for($round)->for($player)->create(['is_correct' => true, 'points' => 750]);
     $saved = false;

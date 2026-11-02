@@ -22,7 +22,7 @@
         </flux:text>
     </div>
 
-    <x-game.podium :leaderboard="$leaderboard" :player="$player" :total-rounds="$room->total_rounds" />
+    <x-game.podium :leaderboard="$leaderboard" :player="$player" :correct-answers="$correctAnswers" :total-rounds="$room->total_rounds" />
 
     @if ($isAdmin)
         <flux:button wire:click="playAgain" x-on:click="$store.sound.play('click')" variant="primary" class="w-full" icon="arrow-path" data-test="play-again-button">

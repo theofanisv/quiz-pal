@@ -273,10 +273,6 @@ class Room extends Component
         $players = $this->room->players;
         $inLobby = $this->room->isInLobby();
 
-        if ($this->room->isFinished()) {
-            $players->loadCount('correctAnswers');
-        }
-
         return view('livewire.game.room', [
             'player' => $player,
             'isAdmin' => $player !== null && $this->room->isAdmin($player),
@@ -285,6 +281,7 @@ class Room extends Component
             'round' => $round,
             'answers' => $answers,
             'myAnswer' => $player !== null ? $answers->get($player->id) : null,
+            'correctAnswers' => $this->room->isFinished() ? ($this->room->currentGame?->correctAnswerCounts() ?? []) : [],
             'allCategories' => $inLobby ? Category::query()->forSource($this->room->question_source)->get() : collect(),
             'openTdbAvailable' => $inLobby && Category::query()->forSource(QuestionSource::OpenTdb)->whereHas('questions')->exists(),
             'shareUrl' => route('rooms.show', $this->room),

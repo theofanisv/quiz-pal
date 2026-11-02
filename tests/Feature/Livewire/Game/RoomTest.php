@@ -5,6 +5,7 @@ use App\Enums\RoomStatus;
 use App\Livewire\Game\Room as RoomPage;
 use App\Models\Answer;
 use App\Models\Category;
+use App\Models\Game;
 use App\Models\Player;
 use App\Models\Question;
 use App\Models\Room;
@@ -274,7 +275,7 @@ describe('playing', function () {
             'text_en' => 'Which planet is known as the Red Planet?',
             'answers_en' => ['Venus', 'Mars', 'Jupiter', 'Saturn'],
         ]);
-        $round = Round::factory()->for($room)->for($question)->started(20)->create(['round_number' => 1]);
+        $round = Round::factory()->forRoom($room)->for($question)->started(20)->create(['round_number' => 1]);
         $player = Player::factory()->for($room)->create(['name' => 'Nikos']);
 
         return [$room, $round, $player];
@@ -282,7 +283,7 @@ describe('playing', function () {
 
     it('shows a get-ready countdown while the question is scheduled', function () {
         $room = Room::factory()->playing()->withAdmin()->create();
-        Round::factory()->for($room)->pending()->create(['round_number' => 1]);
+        Round::factory()->forRoom($room)->pending()->create(['round_number' => 1]);
 
         Livewire::actingAs($room->admin, 'player')
             ->test(RoomPage::class, ['room' => $room])
@@ -474,7 +475,7 @@ describe('playing', function () {
     it('lets the admin move to the next question', function () {
         [$room, $round, $player] = roomInPlay();
         $round->update(['revealed_at' => now()]);
-        Round::factory()->for($room)->for(Question::factory()->state(['text_en' => 'Second question?']))->create(['round_number' => 2]);
+        Round::factory()->forRoom($room)->for(Question::factory()->state(['text_en' => 'Second question?']))->create(['round_number' => 2]);
 
         Livewire::actingAs($room->admin, 'player')
             ->test(RoomPage::class, ['room' => $room])
@@ -487,7 +488,7 @@ describe('playing', function () {
         $room = Room::factory()->playing(1)->withAdmin('Maria')->create(['total_rounds' => 1]);
         $room->admin->update(['score' => 800]);
         $nikos = Player::factory()->for($room)->create(['name' => 'Nikos', 'score' => 1200]);
-        Round::factory()->for($room)->revealed()->create(['round_number' => 1]);
+        Round::factory()->forRoom($room)->revealed()->create(['round_number' => 1]);
 
         Livewire::actingAs($room->admin, 'player')
             ->test(RoomPage::class, ['room' => $room])
@@ -569,7 +570,7 @@ describe('finished', function () {
 
     it('shows how many questions each player answered correctly', function () {
         $room = Room::factory()->finished()->withAdmin('Maria')->create(['total_rounds' => 2]);
-        [$first, $second] = Round::factory()->for($room)->revealed()->count(2)->sequence(['round_number' => 1], ['round_number' => 2])->create();
+        [$first, $second] = Round::factory()->forRoom($room)->revealed()->count(2)->sequence(['round_number' => 1], ['round_number' => 2])->create();
         $nikos = Player::factory()->for($room)->create(['name' => 'Nikos', 'score' => 1500]);
         $eleni = Player::factory()->for($room)->create(['name' => 'Eleni', 'score' => 900]);
         $kostas = Player::factory()->for($room)->create(['name' => 'Kostas', 'score' => 400]);
@@ -588,5 +589,18 @@ describe('finished', function () {
                 'Kostas', '400', '1/2 correct',
                 'Maria', '0/2 correct',
             ]);
+    });
+
+    it('counts only the correct answers of the game that just finished', function () {
+        $room = Room::factory()->finished()->withAdmin('Maria')->create(['total_rounds' => 1]);
+        $earlier = Game::factory()->forRoom($room)->finished()->create();
+        Answer::factory()->for(Round::factory()->for($earlier)->revealed())->for($room->admin)->create(['is_correct' => true]);
+        $current = Game::factory()->forRoom($room)->finished()->create();
+        Answer::factory()->for(Round::factory()->for($current)->revealed())->for($room->admin)->create(['is_correct' => false]);
+
+        Livewire::actingAs($room->admin, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->assertSee('0/1 correct')
+            ->assertDontSee('1/1 correct');
     });
 });

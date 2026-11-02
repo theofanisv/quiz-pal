@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Game;
 use App\Models\Question;
 use App\Models\Room;
 use App\Models\Round;
@@ -18,7 +19,7 @@ class RoundFactory extends Factory
     public function definition(): array
     {
         return [
-            'room_id' => Room::factory(),
+            'game_id' => Game::factory(),
             'round_number' => 1,
             'question_id' => Question::factory(),
             'answer_order' => [0, 1, 2, 3],
@@ -26,6 +27,15 @@ class RoundFactory extends Factory
             'ends_at' => null,
             'revealed_at' => null,
         ];
+    }
+
+    /**
+     * A round of the room's current game. The game is created with the room's settings when the
+     * room has none yet, so several rounds of one room share a game.
+     */
+    public function forRoom(Room $room): static
+    {
+        return $this->for($room->currentGame()->first() ?? Game::factory()->forRoom($room)->create());
     }
 
     /**

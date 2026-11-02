@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable(['code', 'admin_player_id', 'status', 'total_rounds', 'seconds_per_question', 'current_round', 'question_source'])]
 #[RouteKey('code')]
@@ -86,11 +87,23 @@ class Room extends Model
     }
 
     /**
-     * @return HasMany<Round, $this>
+     * Every game played in the room, kept after "Play again".
+     *
+     * @return HasMany<Game, $this>
      */
-    public function rounds(): HasMany
+    public function games(): HasMany
     {
-        return $this->hasMany(Round::class)->orderBy('round_number');
+        return $this->hasMany(Game::class);
+    }
+
+    /**
+     * The game being played, or the one that just finished; back in the lobby it is the previous game.
+     *
+     * @return HasOne<Game, $this>
+     */
+    public function currentGame(): HasOne
+    {
+        return $this->games()->one()->latestOfMany();
     }
 
     public function currentRound(): ?Round
@@ -99,7 +112,7 @@ class Room extends Model
             return null;
         }
 
-        return $this->rounds()->where('round_number', $this->current_round)->with('question')->first();
+        return $this->currentGame?->rounds()->where('round_number', $this->current_round)->with('question')->first();
     }
 
     public function isAdmin(Player $player): bool

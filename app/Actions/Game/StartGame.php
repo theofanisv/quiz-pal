@@ -22,7 +22,8 @@ class StartGame
     ) {}
 
     /**
-     * Pick the questions, create every round up front and open the first one.
+     * Pick the questions, record the game with the room's settings, create every round
+     * up front and open the first one.
      *
      * @throws GameException
      */
@@ -49,11 +50,18 @@ class StartGame
         DB::transaction(function () use ($room, $questionIds): void {
             $room->players()->update(['score' => 0]);
 
+            $game = $room->games()->create([
+                'question_source' => $room->question_source,
+                'total_rounds' => $room->total_rounds,
+                'seconds_per_question' => $room->seconds_per_question,
+            ]);
+            $room->setRelation('currentGame', $game);
+
             foreach ($questionIds as $index => $questionId) {
                 $answerOrder = range(0, Question::ANSWER_COUNT - 1);
                 shuffle($answerOrder);
 
-                $room->rounds()->create([
+                $game->rounds()->create([
                     'round_number' => $index + 1,
                     'question_id' => $questionId,
                     'answer_order' => $answerOrder,

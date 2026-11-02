@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['room_id', 'round_number', 'question_id', 'answer_order', 'started_at', 'ends_at', 'revealed_at'])]
+#[Fillable(['game_id', 'round_number', 'question_id', 'answer_order', 'started_at', 'ends_at', 'revealed_at'])]
 class Round extends Model
 {
     /** @use HasFactory<RoundFactory> */
@@ -50,11 +50,11 @@ class Round extends Model
     }
 
     /**
-     * @return BelongsTo<Room, $this>
+     * @return BelongsTo<Game, $this>
      */
-    public function room(): BelongsTo
+    public function game(): BelongsTo
     {
-        return $this->belongsTo(Room::class);
+        return $this->belongsTo(Game::class);
     }
 
     /**
@@ -141,7 +141,7 @@ class Round extends Model
      */
     public function everyoneAnswered(): bool
     {
-        $connectedIds = $this->room->connectedPlayers()->pluck('id');
+        $connectedIds = $this->game->room->connectedPlayers()->pluck('id');
 
         if ($connectedIds->isEmpty()) {
             return false;

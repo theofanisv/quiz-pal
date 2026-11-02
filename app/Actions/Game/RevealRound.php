@@ -43,7 +43,7 @@ class RevealRound
             });
         });
 
-        $this->announce($round->room, 'revealed');
+        $this->announce($round->game->room, 'revealed');
 
         return true;
     }

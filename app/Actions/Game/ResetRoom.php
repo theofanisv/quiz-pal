@@ -15,6 +15,7 @@ class ResetRoom
 
     /**
      * Send a finished room back to the lobby with the same players and settings.
+     * The finished game, its rounds and answers stay as history.
      *
      * @throws GameException
      */
@@ -29,7 +30,6 @@ class ResetRoom
         }
 
         DB::transaction(function () use ($room): void {
-            $room->rounds()->delete();
             $room->players()->update(['score' => 0, 'is_ready' => false]);
             $room->update(['status' => RoomStatus::Lobby, 'current_round' => 0]);
         });

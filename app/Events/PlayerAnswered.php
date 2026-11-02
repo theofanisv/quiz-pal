@@ -27,7 +27,7 @@ class PlayerAnswered implements ShouldBroadcastNow
 
     public function __construct(Round $round, Player $player)
     {
-        $this->code = $round->room->code;
+        $this->code = $round->game->room->code;
         $this->roundId = $round->id;
         $this->playerId = $player->id;
     }

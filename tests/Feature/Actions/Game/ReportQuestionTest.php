@@ -12,7 +12,7 @@ use function Pest\Laravel\travelTo;
 it('flags the question of a round on screen as waiting for review', function (string $roundState) {
     travelTo('2026-11-02 12:00:00');
     $room = Room::factory()->playing()->withAdmin()->create();
-    $round = Round::factory()->for($room)->{$roundState}()->create();
+    $round = Round::factory()->forRoom($room)->{$roundState}()->create();
 
     $question = app(ReportQuestion::class)->handle($round, $room->admin);
 
@@ -27,7 +27,7 @@ it('flags the question of a round on screen as waiting for review', function (st
 it('reopens a question that was reviewed before', function () {
     $room = Room::factory()->playing()->withAdmin()->create();
     $question = Question::factory()->verified()->create();
-    $round = Round::factory()->for($room)->for($question)->started()->create();
+    $round = Round::factory()->forRoom($room)->for($question)->started()->create();
 
     app(ReportQuestion::class)->handle($round, $room->admin);
 
@@ -36,7 +36,7 @@ it('reopens a question that was reviewed before', function () {
 
 it('rejects a report from a player of another room', function () {
     $room = Room::factory()->playing()->withAdmin()->create();
-    $round = Round::factory()->for($room)->started()->create();
+    $round = Round::factory()->forRoom($room)->started()->create();
     $stranger = Player::factory()->create();
 
     expect(fn () => app(ReportQuestion::class)->handle($round, $stranger))
@@ -47,7 +47,7 @@ it('rejects a report from a player of another room', function () {
 
 it('rejects a report before the question is shown', function () {
     $room = Room::factory()->playing()->withAdmin()->create();
-    $round = Round::factory()->for($room)->pending()->create();
+    $round = Round::factory()->forRoom($room)->pending()->create();
 
     expect(fn () => app(ReportQuestion::class)->handle($round, $room->admin))
         ->toThrow(GameException::class, 'The question has not been shown yet.');

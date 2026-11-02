@@ -1,7 +1,9 @@
 <?php
 
+use App\Models\Answer;
 use App\Models\Player;
 use App\Models\Room;
+use App\Models\Round;
 
 use function Pest\Laravel\artisan;
 use function Pest\Laravel\assertModelExists;
@@ -30,4 +32,20 @@ it('accepts a custom idle threshold in days', function () {
     artisan('quiz:prune-rooms', ['--days' => 1])->assertSuccessful();
 
     assertModelMissing($room);
+});
+
+it('keeps the games, rounds and answers of a pruned room without the room and its players', function () {
+    freezeTime();
+    $room = Room::factory()->finished()->create(['updated_at' => now()->subDays(8)]);
+    $player = Player::factory()->for($room)->create();
+    $round = Round::factory()->forRoom($room)->revealed()->create();
+    $answer = Answer::factory()->for($round)->for($player)->create();
+
+    artisan('quiz:prune-rooms')->assertSuccessful();
+
+    assertModelMissing($room);
+    assertModelMissing($player);
+    assertModelExists($round);
+    expect($round->game->fresh()->room_id)->toBeNull()
+        ->and($answer->fresh()->only(['round_id', 'player_id']))->toBe(['round_id' => $round->id, 'player_id' => null]);
 });

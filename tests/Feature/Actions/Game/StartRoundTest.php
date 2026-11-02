@@ -11,7 +11,7 @@ it('counts the question as shown from the moment it appears', function () {
     freezeSecond();
     $room = Room::factory()->playing(0)->create();
     $question = Question::factory()->shown(2, now()->subDay())->create();
-    Round::factory()->for($room)->for($question)->create(['round_number' => 1]);
+    Round::factory()->forRoom($room)->for($question)->create(['round_number' => 1]);
 
     app(StartRound::class)->handle($room, 1);
 

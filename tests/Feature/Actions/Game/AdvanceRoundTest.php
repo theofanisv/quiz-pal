@@ -14,8 +14,8 @@ use function Pest\Laravel\freezeSecond;
 it('schedules the next round a few seconds ahead after the current one is revealed', function () {
     freezeSecond();
     $room = Room::factory()->playing(1)->withAdmin()->create(['total_rounds' => 2, 'seconds_per_question' => 10]);
-    Round::factory()->for($room)->revealed()->create(['round_number' => 1]);
-    $next = Round::factory()->for($room)->create(['round_number' => 2]);
+    Round::factory()->forRoom($room)->revealed()->create(['round_number' => 1]);
+    $next = Round::factory()->forRoom($room)->create(['round_number' => 2]);
     Event::fake([RoomUpdated::class]);
 
     app(AdvanceRound::class)->handle($room, $room->admin);
@@ -26,20 +26,22 @@ it('schedules the next round a few seconds ahead after the current one is reveal
     Event::assertDispatched(RoomUpdated::class, fn (RoomUpdated $event) => $event->reason === 'next-round');
 });
 
-it('finishes the game after the last round is revealed', function () {
+it('finishes the room and its game after the last round is revealed', function () {
+    freezeSecond();
     $room = Room::factory()->playing(2)->withAdmin()->create(['total_rounds' => 2]);
-    Round::factory()->for($room)->revealed()->create(['round_number' => 2]);
+    $round = Round::factory()->forRoom($room)->revealed()->create(['round_number' => 2]);
     Event::fake([RoomUpdated::class]);
 
     app(AdvanceRound::class)->handle($room, $room->admin);
 
-    expect($room->fresh()->status)->toBe(RoomStatus::Finished);
+    expect($room->fresh()->status)->toBe(RoomStatus::Finished)
+        ->and($round->game->fresh()->finished_at->equalTo(now()))->toBeTrue();
     Event::assertDispatched(RoomUpdated::class, fn (RoomUpdated $event) => $event->reason === 'finished');
 });
 
 it('refuses to advance while the current round is still open', function () {
     $room = Room::factory()->playing(1)->withAdmin()->create();
-    Round::factory()->for($room)->started()->create(['round_number' => 1]);
+    Round::factory()->forRoom($room)->started()->create(['round_number' => 1]);
 
     expect(fn () => app(AdvanceRound::class)->handle($room, $room->admin))
         ->toThrow(GameException::class, 'Wait until the answers are revealed.');
@@ -49,7 +51,7 @@ it('refuses to advance while the current round is still open', function () {
 
 it('forbids players other than the admin', function () {
     $room = Room::factory()->playing(1)->withAdmin()->create();
-    Round::factory()->for($room)->revealed()->create(['round_number' => 1]);
+    Round::factory()->forRoom($room)->revealed()->create(['round_number' => 1]);
     $player = Player::factory()->for($room)->create();
 
     expect(fn () => app(AdvanceRound::class)->handle($room, $player))

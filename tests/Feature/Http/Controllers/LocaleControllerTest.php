@@ -34,7 +34,7 @@ it('renders the interface in greek once chosen', function () {
 it('shows the question in greek to a greek-speaking player', function () {
     $room = Room::factory()->playing()->withAdmin()->create();
     $question = Question::factory()->create(['text_el' => 'Ποιος πλανήτης είναι γνωστός ως ο Κόκκινος Πλανήτης;']);
-    Round::factory()->for($room)->for($question)->started()->create();
+    Round::factory()->forRoom($room)->for($question)->started()->create();
     app()->setLocale('el');
 
     Livewire::actingAs($room->admin, 'player')

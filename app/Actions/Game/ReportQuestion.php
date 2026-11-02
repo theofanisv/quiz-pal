@@ -18,7 +18,7 @@ class ReportQuestion
      */
     public function handle(Round $round, Player $player): Question
     {
-        if ($player->room_id !== $round->room_id) {
+        if ($player->room_id !== $round->game->room_id) {
             throw GameException::notInRoom();
         }
 

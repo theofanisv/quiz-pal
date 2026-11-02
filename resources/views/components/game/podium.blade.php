@@ -3,7 +3,7 @@
     everyone else in rows below, each with how many questions they answered correctly.
     The DOM keeps rank order; CSS `order` arranges the columns.
 --}}
-@props(['leaderboard', 'player', 'totalRounds'])
+@props(['leaderboard', 'player', 'correctAnswers', 'totalRounds'])
 
 @php
     $top = $leaderboard->take(3)->values();
@@ -40,7 +40,7 @@
 
                 <div class="flex flex-col items-center">
                     <span class="font-display text-xl font-bold tabular-nums">{{ $member->score }}</span>
-                    <span class="text-xs text-ink-muted tabular-nums">{{ __(':correct/:total correct', ['correct' => $member->correct_answers_count, 'total' => $totalRounds]) }}</span>
+                    <span class="text-xs text-ink-muted tabular-nums">{{ __(':correct/:total correct', ['correct' => $correctAnswers[$member->id] ?? 0, 'total' => $totalRounds]) }}</span>
                 </div>
 
                 <div
@@ -65,7 +65,7 @@
                             <span class="font-normal text-ink-muted">({{ __('you') }})</span>
                         @endif
                     </span>
-                    <span class="text-xs text-ink-muted tabular-nums">{{ __(':correct/:total correct', ['correct' => $member->correct_answers_count, 'total' => $totalRounds]) }}</span>
+                    <span class="text-xs text-ink-muted tabular-nums">{{ __(':correct/:total correct', ['correct' => $correctAnswers[$member->id] ?? 0, 'total' => $totalRounds]) }}</span>
                     <span class="font-display text-lg font-bold tabular-nums">{{ $member->score }}</span>
                 </li>
             @endforeach

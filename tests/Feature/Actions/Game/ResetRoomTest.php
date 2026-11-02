@@ -10,13 +10,13 @@ use App\Models\Room;
 use App\Models\Round;
 use Illuminate\Support\Facades\Event;
 
-use function Pest\Laravel\assertDatabaseCount;
+use function Pest\Laravel\assertModelExists;
 
 it('sends a finished room back to the lobby with the same players', function () {
     $room = Room::factory()->finished()->withAdmin()->create(['total_rounds' => 1]);
     $player = Player::factory()->for($room)->ready()->create(['score' => 900]);
-    $round = Round::factory()->for($room)->revealed()->create();
-    Answer::factory()->for($round)->for($player)->create();
+    $round = Round::factory()->forRoom($room)->revealed()->create();
+    $answer = Answer::factory()->for($round)->for($player)->create();
     Event::fake([RoomUpdated::class]);
 
     app(ResetRoom::class)->handle($room, $room->admin);
@@ -28,8 +28,8 @@ it('sends a finished room back to the lobby with the same players', function () 
         ->and($player->fresh()->score)->toBe(0)
         ->and($player->fresh()->is_ready)->toBeFalse()
         ->and($player->fresh()->color)->toBe($player->color);
-    assertDatabaseCount('rounds', 0);
-    assertDatabaseCount('answers', 0);
+    assertModelExists($round);
+    assertModelExists($answer);
     Event::assertDispatched(RoomUpdated::class, fn (RoomUpdated $event) => $event->reason === 'reset');
 });
 

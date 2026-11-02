@@ -22,7 +22,7 @@ use function Pest\Laravel\travel;
 function openRound(): array
 {
     $room = Room::factory()->playing()->withAdmin()->create(['seconds_per_question' => 20]);
-    $round = Round::factory()->for($room)->for(Question::factory()->correctAt(2))->started(20)->create();
+    $round = Round::factory()->forRoom($room)->for(Question::factory()->correctAt(2))->started(20)->create();
 
     return [$room, $round];
 }
@@ -120,7 +120,7 @@ it('rejects an answer after the timer ran out and reveals the round instead', fu
 
 it('rejects an answer once the round is revealed', function () {
     $room = Room::factory()->playing()->withAdmin()->create();
-    $round = Round::factory()->for($room)->revealed()->create();
+    $round = Round::factory()->forRoom($room)->revealed()->create();
 
     expect(fn () => app(SubmitAnswer::class)->handle($round, $room->admin, 1))
         ->toThrow(GameException::class, 'This round is already closed.');
@@ -144,7 +144,7 @@ it('rejects a choice outside the four answers', function () {
 it('rejects an answer before the question is shown', function () {
     freezeTime();
     $room = Room::factory()->playing()->withAdmin()->create();
-    $round = Round::factory()->for($room)->pending()->create();
+    $round = Round::factory()->forRoom($room)->pending()->create();
 
     expect(fn () => app(SubmitAnswer::class)->handle($round, $room->admin, 1))
         ->toThrow(GameException::class, 'The question has not been shown yet.');
@@ -155,7 +155,7 @@ it('rejects an answer before the question is shown', function () {
 it('accepts an answer once the start moment has passed', function () {
     freezeTime();
     $room = Room::factory()->playing()->withAdmin()->create(['seconds_per_question' => 20]);
-    $round = Round::factory()->for($room)->for(Question::factory()->correctAt(1))->pending()->create();
+    $round = Round::factory()->forRoom($room)->for(Question::factory()->correctAt(1))->pending()->create();
     travel(3)->seconds();
 
     $answer = app(SubmitAnswer::class)->handle($round, $room->admin, 1);

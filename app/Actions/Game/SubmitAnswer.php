@@ -26,7 +26,7 @@ class SubmitAnswer
      */
     public function handle(Round $round, Player $player, int $choice): Answer
     {
-        if ($player->room_id !== $round->room_id) {
+        if ($player->room_id !== $round->game->room_id) {
             throw GameException::notInRoom();
         }
 
@@ -52,7 +52,7 @@ class SubmitAnswer
 
         $answeredAt = now();
         $elapsedMs = (int) round($startedAt->diffInMilliseconds($answeredAt));
-        $limitMs = $round->room->seconds_per_question * 1000;
+        $limitMs = $round->game->seconds_per_question * 1000;
         $isCorrect = $round->question->isCorrect($choice);
 
         try {

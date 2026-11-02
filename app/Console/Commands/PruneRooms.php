@@ -9,7 +9,7 @@ class PruneRooms extends Command
 {
     protected $signature = 'quiz:prune-rooms {--days=7 : Delete rooms that were last updated more than this many days ago}';
 
-    protected $description = 'Delete stale rooms together with their players, rounds and answers';
+    protected $description = 'Delete stale rooms together with their players; their games, rounds and answers stay as anonymous history';
 
     public function handle(): int
     {
