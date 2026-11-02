@@ -44,10 +44,10 @@
     --color-win: #39ff8f;
     --color-lose: #ff4d6d;
 
-    --animate-pop-in: pop-in 320ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+    --animate-pop-in: pop-in 320ms cubic-bezier(0.2, 1.4, 0.4, 1) backwards;
     --animate-shake: shake 400ms ease-in-out;
     --animate-score-pop: score-pop 600ms ease-out both;
-    --animate-flip-in: flip-in 500ms ease-out both;
+    --animate-flip-in: flip-in 500ms ease-out backwards;
     --animate-pulse-glow: pulse-glow 1s ease-in-out infinite;
     --animate-rise: rise 500ms ease-out both;
     --animate-float: float 7s ease-in-out infinite;
@@ -178,8 +178,14 @@
 }
 
 @layer components {
-    /* Optimistic "you picked this" state of an answer tile; --tile is the tile's neon. */
-    .tile-picked {
+    /*
+        "You picked this" state of an answer tile; --tile is the tile's neon. The server
+        renders `tile-picked` once it has recorded the answer; Alpine adds `tile-picking`
+        the moment the tile is tapped. Two names, so the class clean-up Alpine runs when
+        the pad is re-initialised after a reply never strips the server's class.
+    */
+    .tile-picked,
+    .tile-picking {
         border-color: var(--tile);
         box-shadow:
             0 0 0 1px var(--tile),

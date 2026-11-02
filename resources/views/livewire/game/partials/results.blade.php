@@ -3,9 +3,15 @@
     $winners = $leaderboard->where('score', $topScore)->pluck('name');
 @endphp
 
-<div class="flex flex-col gap-6">
+<div
+    wire:key="results-{{ $room->id }}"
+    x-data="resultsScreen({ winner: @js($winners->contains($player->name)) })"
+    class="flex flex-col gap-6"
+>
+    <canvas x-ref="confetti" aria-hidden="true" class="pointer-events-none fixed inset-0 z-40 size-full"></canvas>
+
     <div class="flex flex-col items-center gap-1 text-center">
-        <flux:heading size="xl" level="1">{{ __('Final results') }}</flux:heading>
+        <h1 class="font-display text-3xl font-extrabold">{{ __('Final results') }}</h1>
 
         <flux:text>
             @if ($winners->count() > 1)
@@ -16,28 +22,7 @@
         </flux:text>
     </div>
 
-    <flux:card>
-        <ol class="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-700">
-            @foreach ($leaderboard as $rank => $member)
-                <li wire:key="rank-{{ $member->id }}" class="flex items-center gap-3 py-3">
-                    <span class="w-8 text-center text-lg font-semibold">
-                        {{ match ($rank) { 0 => '🥇', 1 => '🥈', 2 => '🥉', default => $rank + 1 } }}
-                    </span>
-
-                    <x-game.player-avatar :player="$member" size="sm" />
-
-                    <span class="flex-1 truncate font-medium">
-                        {{ $member->name }}
-                        @if ($member->is($player))
-                            <span class="font-normal text-zinc-500 dark:text-zinc-400">({{ __('you') }})</span>
-                        @endif
-                    </span>
-
-                    <span class="text-lg font-semibold tabular-nums">{{ $member->score }}</span>
-                </li>
-            @endforeach
-        </ol>
-    </flux:card>
+    <x-game.podium :leaderboard="$leaderboard" :player="$player" />
 
     @if ($isAdmin)
         <flux:button wire:click="playAgain" variant="primary" class="w-full" icon="arrow-path" data-test="play-again-button">

@@ -299,9 +299,44 @@ describe('playing', function () {
             ->test(RoomPage::class, ['room' => $room])
             ->call('answer', 1)
             ->assertSee('Answered')
+            ->assertSeeHtml('data-state="selected"')
             ->assertDontSee('Scores');
 
         expect($round->answers()->where('player_id', $player->id)->sole()->is_correct)->toBeTrue();
+    });
+
+    it('marks the correct answer and the chosen wrong answer after the reveal', function () {
+        [$room, $round, $player] = roomInPlay();
+        Livewire::actingAs($player, 'player')->test(RoomPage::class, ['room' => $room])->call('answer', 1);
+
+        Livewire::actingAs($room->admin, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->call('answer', 0)
+            ->assertSeeHtmlInOrder(['data-choice="0"', 'data-state="wrong"'])
+            ->assertSeeHtmlInOrder(['data-choice="1"', 'data-state="correct"'])
+            ->assertSeeHtml('data-state="dim"');
+    });
+
+    it('shows who picked each answer after the reveal', function () {
+        [$room, $round, $player] = roomInPlay();
+        Livewire::actingAs($player, 'player')->test(RoomPage::class, ['room' => $room])->call('answer', 1);
+
+        Livewire::actingAs($room->admin, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->call('answer', 0)
+            ->assertSeeHtmlInOrder(['Mars', 'data-picked-by', 'data-player-color="'.$player->color->value.'"']);
+    });
+
+    it('keeps the server state when the answer is rejected', function () {
+        [$room, $round, $player] = roomInPlay();
+        $round->update(['revealed_at' => now()]);
+
+        Livewire::actingAs($player, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->call('answer', 1)
+            ->assertSeeHtml('data-state="correct"')
+            ->assertDontSeeHtml('data-state="selected"')
+            ->assertDontSeeHtml('data-state="wrong"');
     });
 
     it('reveals the answers and the scores once everyone has answered', function () {

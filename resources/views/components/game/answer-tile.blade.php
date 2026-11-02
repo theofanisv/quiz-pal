@@ -23,8 +23,8 @@
 
 <button
     type="button"
-    data-state="{{ $state }}"
     data-choice="{{ $choice }}"
+    data-state="{{ $state }}"
     style="--tile: var(--color-neon-{{ $tile }}); animation-delay: {{ $position * 60 }}ms"
     @disabled($disabled)
     {{ $attributes->class([
@@ -52,7 +52,7 @@
     @endif
 
     @if ($pickedBy?->isNotEmpty())
-        <span class="flex shrink-0 -space-x-1.5">
+        <span data-picked-by class="flex shrink-0 -space-x-1.5">
             @foreach ($pickedBy as $picker)
                 <x-game.player-avatar :player="$picker" size="xs" class="ring-2 ring-night-800" />
             @endforeach
