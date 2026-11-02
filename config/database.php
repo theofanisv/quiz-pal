@@ -62,6 +62,14 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+            // mysqldump options for spatie/laravel-backup and spatie/laravel-db-snapshots. --no-tablespaces because the
+            // application user has no PROCESS privilege; the key must be "setGtidPurged" for db-snapshots to apply it.
+            'dump' => [
+                'useSingleTransaction' => true,
+                'useQuick' => true,
+                'setGtidPurged' => 'OFF',
+                'addExtraOption' => '--no-tablespaces',
+            ],
         ],
 
         'mariadb' => [

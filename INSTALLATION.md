@@ -2,8 +2,8 @@
 
 ## Requirements
 
-- PHP 8.3 or newer with the `pdo_mysql`, `pdo_sqlite`, `sqlite3`, `mbstring`, `xml`, `xmlwriter`, `curl`, `pcntl` and `redis` (phpredis) extensions
-- MySQL 8 for production
+- PHP 8.3 or newer with the `pdo_mysql`, `pdo_sqlite`, `sqlite3`, `mbstring`, `xml`, `xmlwriter`, `curl`, `pcntl`, `zip` and `redis` (phpredis) extensions
+- MySQL 8 for production, with the `mysqldump` client on the same machine (backups and update snapshots use it)
 - Redis 6 or newer (sessions, cache and the queue connection use it)
 - Composer 2
 - Node.js 22 or newer with npm
@@ -139,7 +139,8 @@ If the server has several PHP versions, call the one that serves the site explic
    keys. `php artisan optimize` is safe.
 6. **Cache**: `php artisan optimize`. Run it again after every change to `.env`, because the configuration is cached.
 7. **Permissions**: `storage/` and `bootstrap/cache/` must be writable by the user PHP-FPM runs as. Keep `.env` readable only by that user.
-8. **Scheduler**: add a cron entry so idle rooms get cleaned up every day:
+8. **Scheduler**: add a cron entry so idle rooms get cleaned up every day and, in production, the nightly backup runs
+   (see [Backups](#backups)):
 
    ```cron
    * * * * * cd /var/www/quizpal && php artisan schedule:run >> /dev/null 2>&1
@@ -229,8 +230,9 @@ process takes both apps' live updates down. A separate process costs 30 to 50 MB
    WebSocket is not connected and the page is polling.
 
 To deploy a new version run `composer update-app` from the application root as the user that owns the files (on this
-kind of server: `php8.3 /usr/local/bin/composer update-app`). The script backs up the database to
-`storage/app/private/backups` (keeping the last 10), fetches and resets the checkout to the remote branch, installs the
+kind of server: `php8.3 /usr/local/bin/composer update-app`). The script takes a compressed database snapshot with
+`php artisan snapshot:create update-<date> --compress` into `database/snapshots` (keeping the last 10; set `SNAPSHOT_KEEP`
+to change that), fetches and resets the checkout to the remote branch, installs the
 Composer dependencies, runs `php artisan migrate --force` and the question seeder, runs the pending one-time operations
 (`php artisan operations:process --sync`, files in `database/operations`, created with `php artisan operations:make
 <Name>`), rebuilds the caches with `php artisan optimize` and runs `php artisan reverb:restart`, so that Reverb picks up
@@ -238,7 +240,22 @@ the new code. It does not build the
 front-end: run `npm run build` locally and commit `public/build` before pushing, the update refuses to start when the
 incoming commit has no `public/build/manifest.json`. It also stops before touching anything when tracked files were
 modified on the server. The Reverb restart drops the players' live connections for a moment (they reconnect by
-themselves), so run it between games.
+themselves), so run it between games. When a step fails after the snapshot, the script prints the commands that put the
+previous commit and the database back; the database part is `php artisan snapshot:load update-<date> --force`
+(`php artisan snapshot:list` shows the snapshots).
+
+### Backups
+
+In production the scheduler runs [spatie/laravel-backup](https://spatie.be/docs/laravel-backup) every night (UTC):
+`backup:run` at 02:00 zips a dump of the database together with `.env`, `backup:clean` at 03:00 thins out old archives
+(all of the last 7 days, then one a day for 16 days, one a week for 8 weeks, one a month for 4 months), and
+`backup:monitor` at 04:00 checks that the newest archive is less than a day old. The archives are in
+`storage/app/private/<APP_NAME>/` (readable only by the owner); `php artisan backup:list` shows them. They stay on the same
+server, so they protect against mistakes in the application, not against losing the server.
+
+A failed backup or an unhealthy one sends a mail to the address in `config/backup.php` (`notifications.mail.to`). With
+`MAIL_MAILER=log` that mail only lands in `storage/logs`. To encrypt the archives, which contain `.env`, set
+`BACKUP_ARCHIVE_PASSWORD` and run `php artisan optimize`.
 
 ## Troubleshooting
 
