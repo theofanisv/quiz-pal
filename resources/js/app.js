@@ -6,14 +6,35 @@
 
 import './echo';
 import { launchConfetti } from './confetti';
+import { SOUND_STORE } from './sound-store';
 
 const NEON_COLORS = ['#22e1ff', '#ff3cac', '#b4ff39', '#ffb830', '#9d6bff'];
 
+/**
+ * The last countdown second that ticked, keyed by the round's end time: a re-render
+ * re-initialises the clock, and this keeps it from repeating a tick.
+ */
+let lastTick = null;
+
 document.addEventListener('alpine:init', () => {
+    window.Alpine.store('sound', SOUND_STORE);
+
+    const sound = () => window.Alpine.store('sound');
+
+    /**
+     * Tells the sound store which screen is showing. The join and lobby roots use it; the
+     * play and results screens report from their own components.
+     */
+    window.Alpine.data('gameScreen', (name) => ({
+        init() {
+            sound().setScreen(name);
+        },
+    }));
+
     /**
      * Round clock. Every value comes from server timestamps, so all devices show the
      * question at the same instant and count down together; the server still decides
-     * when a round is really over.
+     * when a round is really over. Ticks in the last five seconds while the round is open.
      */
     window.Alpine.data('roundClock', ({ startsAt, endsAt, serverNow, totalMs }) => ({
         started: false,
@@ -23,6 +44,8 @@ document.addEventListener('alpine:init', () => {
         interval: null,
 
         init() {
+            sound().setScreen('play');
+
             const offset = Date.now() - serverNow;
 
             const tick = () => {
@@ -31,6 +54,10 @@ document.addEventListener('alpine:init', () => {
                 this.startsIn = Math.max(0, Math.ceil((startsAt - now) / 1000));
                 this.started = now >= startsAt;
                 this.remaining = Math.max(0, endsAt - now);
+
+                if (this.started) {
+                    this.cueTick();
+                }
 
                 if (this.started && this.remaining <= 0 && !this.fired) {
                     this.fired = true;
@@ -47,6 +74,31 @@ document.addEventListener('alpine:init', () => {
             clearInterval(this.interval);
         },
 
+        /**
+         * One tick a second from 5 down to 2 and a higher final tick at 1, only while the
+         * round is still open (the reveal renders a sound cue, which is the signal to stop).
+         */
+        cueTick() {
+            const seconds = this.seconds;
+            const key = `${endsAt}:${seconds}`;
+
+            if (key === lastTick) {
+                return;
+            }
+
+            lastTick = key;
+
+            if (this.$root.querySelector('[data-sound-cue]') !== null) {
+                return;
+            }
+
+            if (seconds >= 2 && seconds <= 5) {
+                sound().play('tick');
+            } else if (seconds === 1) {
+                sound().play('tickFinal');
+            }
+        },
+
         get seconds() {
             return Math.ceil(this.remaining / 1000);
         },
@@ -58,9 +110,9 @@ document.addEventListener('alpine:init', () => {
 
     /**
      * The answer pad. Highlights the tapped tile immediately and locks the pad while the
-     * server records the answer; if the server did not accept it (the tile comes back
-     * idle), the pad unlocks again. `open` is false once the player has answered or the
-     * round is revealed.
+     * server records the answer; the next render re-initialises the pad from the server,
+     * and if the server did not accept the answer (the tile comes back idle) the pad
+     * unlocks again. `open` is false once the player has answered or the round is revealed.
      */
     window.Alpine.data('answerPad', ({ open }) => ({
         open,
@@ -72,7 +124,7 @@ document.addEventListener('alpine:init', () => {
             }
 
             this.picked = choice;
-            window.Alpine.store('sound')?.play?.('select');
+            sound().play('select');
 
             await this.$wire.answer(choice);
 
@@ -89,7 +141,7 @@ document.addEventListener('alpine:init', () => {
      */
     window.Alpine.data('resultsScreen', ({ winner }) => ({
         init() {
-            window.Alpine.store('sound')?.setScreen?.('results');
+            sound().setScreen('results');
 
             launchConfetti(this.$refs.confetti, NEON_COLORS, winner ? 220 : 70);
         },

@@ -1,4 +1,4 @@
-<flux:card class="flex flex-col gap-5 rounded-3xl">
+<flux:card class="flex flex-col gap-5 rounded-3xl" x-data="gameScreen('join')">
     <x-game.room-code :code="$room->code" />
 
     @if ($room->isInLobby())

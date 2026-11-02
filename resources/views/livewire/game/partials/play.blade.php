@@ -4,6 +4,7 @@
     $answersByChoice = $answers->groupBy('choice');
     $strip = $revealed ? $leaderboard : $players;
     $canAnswer = ! $revealed && $myAnswer === null;
+    $cue = ($myAnswer?->is_correct ?? false) ? 'correct' : 'wrong';
 @endphp
 
 <div
@@ -144,8 +145,11 @@
         </flux:card>
 
         @if ($revealed)
+            {{-- Inserted once per reveal, so x-init plays the cue exactly once on every client. --}}
+            <span hidden wire:key="cue-{{ $round->id }}" data-sound-cue="{{ $cue }}" x-data x-init="$store.sound.play('{{ $cue }}')"></span>
+
             @if ($isAdmin)
-                <flux:button wire:click="nextRound" variant="primary" class="w-full" icon-trailing="arrow-right" data-test="next-button">
+                <flux:button wire:click="nextRound" x-on:click="$store.sound.play('click')" variant="primary" class="w-full" icon-trailing="arrow-right" data-test="next-button">
                     {{ $room->isLastRound() ? __('Show final results') : __('Next question') }}
                 </flux:button>
             @else

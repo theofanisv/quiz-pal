@@ -17,7 +17,10 @@
                     <x-game.logo />
                 </a>
 
-                <x-locale-switcher />
+                <div class="flex items-center gap-2">
+                    <x-game.sound-toggles />
+                    <x-locale-switcher />
+                </div>
             </header>
 
             <main class="flex flex-1 flex-col gap-6">

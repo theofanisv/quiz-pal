@@ -2,7 +2,7 @@
     $everyoneReady = $room->everyoneReady();
 @endphp
 
-<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-6" x-data="gameScreen('lobby')">
     <flux:card class="flex flex-col gap-4 rounded-3xl">
         <div class="flex items-start justify-between gap-4">
             <x-game.room-code :code="$room->code" />
@@ -128,6 +128,7 @@
     <div class="flex flex-col gap-3">
         <flux:button
             wire:click="toggleReady"
+            x-on:click="$store.sound.play('click')"
             :variant="$player->is_ready ? 'filled' : 'primary'"
             :icon="$player->is_ready ? 'check' : null"
             class="w-full"
@@ -139,6 +140,7 @@
         @if ($isAdmin)
             <flux:button
                 wire:click="startGame"
+                x-on:click="$store.sound.play('click')"
                 variant="primary"
                 icon="play"
                 class="w-full [--color-accent:var(--color-win)] [--color-accent-content:var(--color-win)] [--color-accent-foreground:var(--color-night-950)]"

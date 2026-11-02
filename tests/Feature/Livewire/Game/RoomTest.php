@@ -339,6 +339,31 @@ describe('playing', function () {
             ->assertDontSeeHtml('data-state="wrong"');
     });
 
+    it('cues the right sound for each player after the reveal', function () {
+        [$room, $round, $player] = roomInPlay();
+        Livewire::actingAs($player, 'player')->test(RoomPage::class, ['room' => $room])->call('answer', 1);
+
+        Livewire::actingAs($room->admin, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->call('answer', 0)
+            ->assertSeeHtml('data-sound-cue="wrong"')
+            ->assertDontSeeHtml('data-sound-cue="correct"');
+
+        Livewire::actingAs($player, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->assertSeeHtml('data-sound-cue="correct"')
+            ->assertDontSeeHtml('data-sound-cue="wrong"');
+    });
+
+    it('does not cue a reveal sound while the round is open', function () {
+        [$room, $round, $player] = roomInPlay();
+
+        Livewire::actingAs($player, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->call('answer', 1)
+            ->assertDontSeeHtml('data-sound-cue');
+    });
+
     it('reveals the answers and the scores once everyone has answered', function () {
         freezeSecond();
         [$room, $round, $player] = roomInPlay();
