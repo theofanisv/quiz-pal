@@ -9,6 +9,7 @@ use App\Models\Room;
 use App\Models\Round;
 use Illuminate\Support\Facades\Event;
 
+use function Pest\Laravel\freezeSecond;
 use function Pest\Laravel\freezeTime;
 use function Pest\Laravel\travel;
 
@@ -39,7 +40,7 @@ it('scores a correct answer by how fast it came', function () {
 });
 
 it('records how long the player took to answer', function () {
-    freezeTime();
+    freezeSecond();
     [$room, $round] = openRound();
     Player::factory()->for($room)->create();
     travel(5)->seconds();

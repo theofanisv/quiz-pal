@@ -25,7 +25,7 @@ The app and the whole question bank are available in **English and Greek**; ever
 
 ## Tech stack
 
-- [Laravel 13](https://laravel.com) (PHP 8.3) with SQLite
+- [Laravel 13](https://laravel.com) (PHP 8.3) with MySQL in production and SQLite for local development and the tests
 - [Livewire 4](https://livewire.laravel.com) and [Flux UI](https://fluxui.dev) for the interface, Tailwind CSS 4 for styling
 - [Laravel Reverb](https://reverb.laravel.com) and Laravel Echo for real-time events
 - Pest 4 for tests, Larastan (PHPStan level 7) and Laravel Pint for code quality
