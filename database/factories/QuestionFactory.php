@@ -35,6 +35,25 @@ class QuestionFactory extends Factory
     }
 
     /**
+     * A question a player reported and nobody has reviewed yet.
+     */
+    public function reported(): static
+    {
+        return $this->state(fn (array $attributes): array => ['reported_at' => now()->subHour()]);
+    }
+
+    /**
+     * A question that was reviewed after its last report.
+     */
+    public function verified(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'reported_at' => now()->subDay(),
+            'verified_at' => now()->subHour(),
+        ]);
+    }
+
+    /**
      * A question that only exists in English, like the ones synced from Open Trivia DB.
      */
     public function englishOnly(): static

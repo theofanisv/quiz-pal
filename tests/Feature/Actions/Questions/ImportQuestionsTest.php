@@ -167,3 +167,64 @@ it('rejects question text longer than the column allows', function () {
     expect(fn () => app(ImportQuestions::class)->handleFile($path))
         ->toThrow(InvalidArgumentException::class, '500');
 });
+
+/**
+ * A one-question file in the "maths" category, with the given extra keys on the question.
+ *
+ * @param  array<string, mixed>  $extra
+ */
+function mathsQuestionFile(array $extra = []): string
+{
+    return writeQuestionFile([
+        'category' => ['slug' => 'maths', 'name' => ['en' => 'Maths', 'el' => 'Μαθηματικά']],
+        'questions' => [[
+            'text' => ['en' => 'What is 2 + 2?', 'el' => 'Πόσο κάνει 2 + 2;'],
+            'answers' => ['en' => ['3', '4', '5', '6'], 'el' => ['3', '4', '5', '6']],
+            'correct' => 1,
+            ...$extra,
+        ]],
+    ]);
+}
+
+it('renames the question it replaces in place, keeping its id and review state', function () {
+    $category = Category::factory()->create(['slug' => 'maths']);
+    $old = Question::factory()->for($category)->reported()->correctAt(0)->create(['text_en' => 'Wat is 2 + 2?']);
+    $reportedAt = $old->reported_at;
+
+    app(ImportQuestions::class)->handleFile(mathsQuestionFile(['replaces' => 'Wat is 2 + 2?']));
+
+    $renamed = $old->fresh();
+    expect($renamed->text_en)->toBe('What is 2 + 2?')
+        ->and($renamed->correct_index)->toBe(1)
+        ->and($renamed->reported_at->equalTo($reportedAt))->toBeTrue();
+    assertDatabaseCount('questions', 1);
+});
+
+it('adds the question when the text it replaces is not in the category', function () {
+    app(ImportQuestions::class)->handleFile(mathsQuestionFile(['replaces' => 'Wat is 2 + 2?']));
+
+    expect(Question::query()->pluck('text_en')->all())->toBe(['What is 2 + 2?']);
+});
+
+it('rejects a replaces value that is not the old english text', function (mixed $replaces) {
+    expect(fn () => app(ImportQuestions::class)->handleFile(mathsQuestionFile(['replaces' => $replaces])))
+        ->toThrow(InvalidArgumentException::class, 'question #0: "replaces" must be the old English text of the question');
+
+    assertDatabaseCount('questions', 0);
+})->with([
+    'an empty string' => '',
+    'a number' => 7,
+]);
+
+it('keeps the review state of a question when its file is imported again', function () {
+    $category = Category::factory()->create(['slug' => 'sample']);
+    $question = Question::factory()->for($category)->verified()->create(['text_en' => 'What is 2 + 2?']);
+    $reportedAt = $question->reported_at;
+    $verifiedAt = $question->verified_at;
+
+    app(ImportQuestions::class)->handleFile(base_path('tests/Fixtures/questions/sample.json'));
+
+    $imported = $question->fresh();
+    expect($imported->reported_at->equalTo($reportedAt))->toBeTrue()
+        ->and($imported->verified_at->equalTo($verifiedAt))->toBeTrue();
+});

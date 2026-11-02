@@ -167,8 +167,22 @@
             @endif
         @endif
 
-        @if ($room->question_source === \App\Enums\QuestionSource::OpenTdb)
-            <flux:text class="text-center text-xs">{{ __('Questions from the Open Trivia Database (CC BY-SA 4.0).') }}</flux:text>
-        @endif
+        <div class="flex flex-col items-center gap-2">
+            @if (in_array($question->id, $reportedQuestionIds, true))
+                <flux:button size="xs" variant="subtle" icon="flag" disabled data-test="report-button">
+                    {{ __('Reported') }}
+                </flux:button>
+            @else
+                <flux:tooltip :content="__('Is the question or its answer wrong? Let us know.')">
+                    <flux:button wire:click="reportQuestion" size="xs" variant="subtle" icon="flag" data-test="report-button">
+                        {{ __('Report question') }}
+                    </flux:button>
+                </flux:tooltip>
+            @endif
+
+            @if ($room->question_source === \App\Enums\QuestionSource::OpenTdb)
+                <flux:text class="text-center text-xs">{{ __('Questions from the Open Trivia Database (CC BY-SA 4.0).') }}</flux:text>
+            @endif
+        </div>
     </div>
 </div>

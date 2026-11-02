@@ -492,6 +492,30 @@ describe('playing', function () {
             ->assertDontSee('Open Trivia Database');
     });
 
+    it('lets a player report the question, thanks them and shows it as reported', function () {
+        [$room, $round, $player] = roomInPlay();
+
+        Livewire::actingAs($player, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->assertSee('Report question')
+            ->call('reportQuestion')
+            ->assertDispatched('toast-show', fn (string $event, array $params): bool => $params['slots']['text'] === 'Thanks! We will check this question.')
+            ->assertSeeHtmlInOrder(['data-test="report-button"', 'Reported'])
+            ->assertDontSee('Report question');
+
+        expect($round->question->fresh()->reported_at)->not->toBeNull();
+    });
+
+    it('forbids a visitor who is not a player from reporting the question', function () {
+        [$room, $round] = roomInPlay();
+
+        Livewire::test(RoomPage::class, ['room' => $room])
+            ->call('reportQuestion')
+            ->assertForbidden();
+
+        expect($round->question->fresh()->reported_at)->toBeNull();
+    });
+
     it('marks players who are not on the presence channel as away', function () {
         [$room, $round, $player] = roomInPlay();
 

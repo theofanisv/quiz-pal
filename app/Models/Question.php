@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Models\Concerns\HasLocalizedText;
 use Database\Factories\QuestionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -31,6 +33,8 @@ class Question extends Model
             'answers_el' => 'array',
             'correct_index' => 'integer',
             'difficulty' => 'integer',
+            'reported_at' => 'datetime',
+            'verified_at' => 'datetime',
         ];
     }
 
@@ -53,6 +57,29 @@ class Question extends Model
     public function isCorrect(int $choice): bool
     {
         return $choice === $this->correct_index;
+    }
+
+    /**
+     * Questions a player reported after their last review.
+     *
+     * @param  Builder<Question>  $query
+     */
+    #[Scope]
+    protected function awaitingReview(Builder $query): void
+    {
+        $query->whereNotNull('reported_at')
+            ->where(fn (Builder $query) => $query->whereNull('verified_at')->orWhereColumn('verified_at', '<', 'reported_at'));
+    }
+
+    /**
+     * Questions new games may use: never reported, or reviewed since the last report.
+     *
+     * @param  Builder<Question>  $query
+     */
+    #[Scope]
+    protected function inRotation(Builder $query): void
+    {
+        $query->where(fn (Builder $query) => $query->whereNull('reported_at')->orWhereColumn('verified_at', '>=', 'reported_at'));
     }
 
     /**

@@ -16,7 +16,10 @@ use InvalidArgumentException;
  * "opentdb") may hold English-only questions until they are translated; those are stored
  * without Greek text and shown in English.
  *
- * @phpstan-type QuestionData array{text: array{en: string, el?: string}, answers: array{en: array<int, string>, el?: array<int, string>}, correct: int, difficulty?: int}
+ * The English text identifies a question. To reword it without losing the row (its rounds and
+ * review state), give the old English text as "replaces"; the row is renamed in place.
+ *
+ * @phpstan-type QuestionData array{text: array{en: string, el?: string}, answers: array{en: array<int, string>, el?: array<int, string>}, correct: int, difficulty?: int, replaces?: string}
  * @phpstan-type CategoryData array{slug: string, order?: int, source?: mixed, external_id?: mixed, name: array{en: string, el: string}}
  */
 class ImportQuestions
@@ -92,20 +95,38 @@ class ImportQuestions
             foreach ($data['questions'] as $index => $question) {
                 $this->validateQuestion($question, $source, $path, $index);
 
-                Question::query()->updateOrCreate(
-                    ['category_id' => $category->id, 'text_en' => $question['text']['en']],
-                    [
-                        'text_el' => $question['text']['el'] ?? null,
-                        'answers_en' => array_values($question['answers']['en']),
-                        'answers_el' => isset($question['answers']['el']) ? array_values($question['answers']['el']) : null,
-                        'correct_index' => $question['correct'],
-                        'difficulty' => $question['difficulty'] ?? null,
-                    ],
-                );
+                $this->findQuestion($category, $question)->fill([
+                    'text_en' => $question['text']['en'],
+                    'text_el' => $question['text']['el'] ?? null,
+                    'answers_en' => array_values($question['answers']['en']),
+                    'answers_el' => isset($question['answers']['el']) ? array_values($question['answers']['el']) : null,
+                    'correct_index' => $question['correct'],
+                    'difficulty' => $question['difficulty'] ?? null,
+                ])->save();
             }
 
             return count($data['questions']);
         });
+    }
+
+    /**
+     * The row with the question's English text, else the row it replaces, else a new row.
+     *
+     * @param  QuestionData  $question
+     */
+    private function findQuestion(Category $category, array $question): Question
+    {
+        $texts = array_filter([$question['text']['en'], $question['replaces'] ?? null]);
+
+        foreach ($texts as $text) {
+            $existing = $category->questions()->where('text_en', $text)->first();
+
+            if ($existing !== null) {
+                return $existing;
+            }
+        }
+
+        return new Question(['category_id' => $category->id]);
     }
 
     /**
@@ -197,6 +218,12 @@ class ImportQuestions
             if (in_array('', $trimmed, true) || count(array_unique(array_map('mb_strtolower', $trimmed))) !== Question::ANSWER_COUNT) {
                 throw $fail("{$locale} answers must be four distinct non-empty strings");
             }
+        }
+
+        $replaces = $question['replaces'] ?? null;
+
+        if ($replaces !== null && (! is_string($replaces) || trim($replaces) === '')) {
+            throw $fail('"replaces" must be the old English text of the question');
         }
 
         $correct = $question['correct'] ?? null;

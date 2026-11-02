@@ -6,6 +6,7 @@ use App\Actions\Game\AdvanceRound;
 use App\Actions\Game\CloseExpiredRound;
 use App\Actions\Game\JoinRoom;
 use App\Actions\Game\RemovePlayer;
+use App\Actions\Game\ReportQuestion;
 use App\Actions\Game\ResetRoom;
 use App\Actions\Game\SetPlayerReady;
 use App\Actions\Game\StartGame;
@@ -45,6 +46,13 @@ class Room extends Component
     public array $categories = [];
 
     public string $questionSource = 'custom';
+
+    /**
+     * Questions this visitor reported, so their report button shows as done.
+     *
+     * @var array<int, int>
+     */
+    public array $reportedQuestionIds = [];
 
     public function mount(RoomModel $room): void
     {
@@ -142,6 +150,26 @@ class Room extends Component
         }
 
         $this->guard(fn () => $submitAnswer->handle($round, $player, $choice));
+    }
+
+    public function reportQuestion(ReportQuestion $reportQuestion): void
+    {
+        $player = $this->requirePlayer();
+        $round = $this->room->currentRound();
+
+        if ($round === null) {
+            return;
+        }
+
+        $question = $this->guard(fn () => $reportQuestion->handle($round, $player));
+
+        if ($question === null) {
+            return;
+        }
+
+        $this->reportedQuestionIds[] = $question->id;
+
+        Flux::toast(variant: 'success', text: __('Thanks! We will check this question.'));
     }
 
     /**

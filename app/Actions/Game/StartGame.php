@@ -72,6 +72,7 @@ class StartGame
 
     /**
      * Spread the questions evenly over the selected categories, then shuffle them.
+     * Questions a player reported are left out until someone reviews them.
      *
      * @return array<int, int>
      *
@@ -84,6 +85,7 @@ class StartGame
         /** @var Collection<int, Collection<int, int>> $idsPerCategory */
         $idsPerCategory = Question::query()
             ->whereIn('category_id', $categoryIds)
+            ->inRotation()
             ->inRandomOrder()
             ->get(['id', 'category_id'])
             ->groupBy('category_id')

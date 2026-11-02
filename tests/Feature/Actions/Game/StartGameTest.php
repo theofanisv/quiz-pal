@@ -102,3 +102,31 @@ it('refuses to start while live updates are unavailable', function () {
     expect($room->fresh()->status)->toBe(RoomStatus::Lobby)
         ->and($room->rounds()->count())->toBe(0);
 });
+
+it('leaves out questions that wait for review', function () {
+    $room = Room::factory()->withAdmin()->create(['total_rounds' => 2]);
+    $room->admin->update(['is_ready' => true]);
+    $category = Category::factory()->create();
+    $playable = Question::factory()->for($category)->create();
+    $verified = Question::factory()->for($category)->verified()->create();
+    Question::factory()->for($category)->reported()->count(3)->create();
+    $room->categories()->attach($category);
+
+    app(StartGame::class)->handle($room, $room->admin);
+
+    expect($room->rounds()->pluck('question_id')->sort()->values()->all())->toBe([$playable->id, $verified->id]);
+});
+
+it('does not count questions that wait for review as available', function () {
+    $room = Room::factory()->withAdmin()->create(['total_rounds' => 2]);
+    $room->admin->update(['is_ready' => true]);
+    $category = Category::factory()->create();
+    Question::factory()->for($category)->create();
+    Question::factory()->for($category)->reported()->count(2)->create();
+    $room->categories()->attach($category);
+
+    expect(fn () => app(StartGame::class)->handle($room, $room->admin))
+        ->toThrow(GameException::class, 'Only 1 questions are available for the chosen categories. Choose more categories or fewer rounds.');
+
+    expect($room->fresh()->status)->toBe(RoomStatus::Lobby);
+});
