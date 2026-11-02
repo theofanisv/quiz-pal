@@ -49,6 +49,9 @@
         <flux:icon.x-circle class="size-6 shrink-0 text-lose" />
     @elseif ($state === 'selected')
         <flux:icon.check class="size-5 shrink-0 text-(--tile)" />
+    @elseif ($state === 'idle')
+        {{-- The tick of a tile the player just tapped (Alpine's `tile-picking`), before the server has replied. --}}
+        <flux:icon.check class="hidden size-5 shrink-0 text-(--tile) in-[.tile-picking]:block" />
     @endif
 
     @if ($pickedBy?->isNotEmpty())

@@ -303,17 +303,28 @@ describe('playing', function () {
             ->assertDontSee('Next question');
     });
 
-    it('records the answer and marks the player as answered without revealing', function () {
+    it('records the answer and skips the render while the round stays open', function () {
         [$room, $round, $player] = roomInPlay();
 
         Livewire::actingAs($player, 'player')
             ->test(RoomPage::class, ['room' => $room])
             ->call('answer', 1)
-            ->assertSee('Answered')
-            ->assertSeeHtml('data-state="selected"')
-            ->assertDontSee('Scores');
+            ->assertReturned(1)
+            ->assertRenderSkipped();
 
-        expect($round->answers()->where('player_id', $player->id)->sole()->is_correct)->toBeTrue();
+        expect($round->answers()->where('player_id', $player->id)->sole()->is_correct)->toBeTrue()
+            ->and($round->fresh()->isRevealed())->toBeFalse();
+    });
+
+    it('shows the player their recorded answer and marks them as answered', function () {
+        [$room, $round, $player] = roomInPlay();
+        Answer::factory()->for($round)->for($player)->create(['choice' => 1]);
+
+        Livewire::actingAs($player, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->assertSeeHtmlInOrder(['data-choice="1"', 'data-state="selected"'])
+            ->assertSeeHtml('data-answered="true"')
+            ->assertDontSee('Scores');
     });
 
     it('marks the correct answer and the chosen wrong answer after the reveal', function () {
@@ -345,6 +356,7 @@ describe('playing', function () {
         Livewire::actingAs($player, 'player')
             ->test(RoomPage::class, ['room' => $room])
             ->call('answer', 0)
+            ->assertReturned(null)
             ->assertSeeHtmlInOrder(['data-choice="0"', 'data-state="dim"'])
             ->assertDontSeeHtml('data-state="selected"')
             ->assertDontSeeHtml('data-state="wrong"');
@@ -428,7 +440,8 @@ describe('playing', function () {
         Livewire::actingAs($player, 'player')
             ->test(RoomPage::class, ['room' => $room])
             ->call('timeUp')
-            ->assertSee('Time left');
+            ->assertReturned(false)
+            ->assertRenderSkipped();
 
         expect($round->fresh()->isRevealed())->toBeFalse();
     });
@@ -441,10 +454,21 @@ describe('playing', function () {
         Livewire::actingAs($player, 'player')
             ->test(RoomPage::class, ['room' => $room])
             ->call('timeUp')
+            ->assertReturned(true)
             ->assertSee('Scores')
             ->assertSee('Waiting for Maria to continue.');
 
         expect($round->fresh()->isRevealed())->toBeTrue();
+    });
+
+    it('renders the reveal when time is up after another player revealed the round', function () {
+        [$room, $round, $player] = roomInPlay();
+        $page = Livewire::actingAs($player, 'player')->test(RoomPage::class, ['room' => $room]);
+        $round->update(['revealed_at' => now()]);
+
+        $page->call('timeUp')
+            ->assertReturned(true)
+            ->assertSee('Scores');
     });
 
     it('lets the admin move to the next question', function () {

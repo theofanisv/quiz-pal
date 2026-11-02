@@ -71,7 +71,7 @@ class SubmitAnswer
         if ($round->everyoneAnswered()) {
             $this->revealRound->handle($round);
         } else {
-            $this->announce($round->room, 'answered');
+            $this->announceAnswer($round, $player);
         }
 
         return $answer;

@@ -26,11 +26,12 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Async;
 use Livewire\Component;
 
 /**
  * The single page of a room: join form, lobby, play and results.
- * State lives in the database; every broadcast simply re-renders this component.
+ * State lives in the database; every RoomUpdated broadcast re-renders this component.
  */
 class Room extends Component
 {
@@ -140,16 +141,35 @@ class Room extends Component
         $this->guard(fn () => $startGame->handle($this->room, $player));
     }
 
-    public function answer(int $choice, SubmitAnswer $submitAnswer): void
+    /**
+     * Record the player's pick and return the choice the server holds for them (null when it
+     * rejected the answer), so the pad can keep or release its pick. Async, so the tap does
+     * not wait behind a re-render already in flight (answer speed is scored). While the round
+     * stays open there is nothing new to render: the pad already shows the pick and
+     * PlayerAnswered updates every strip. The answer that reveals the round, and an answer
+     * the server rejects, render as usual.
+     */
+    #[Async]
+    public function answer(int $choice, SubmitAnswer $submitAnswer): ?int
     {
         $player = $this->requirePlayer();
         $round = $this->room->currentRound();
 
         if ($round === null) {
-            return;
+            return null;
         }
 
-        $this->guard(fn () => $submitAnswer->handle($round, $player, $choice));
+        $answer = $this->guard(fn () => $submitAnswer->handle($round, $player, $choice));
+
+        if ($answer === null) {
+            return null;
+        }
+
+        if (! $round->isRevealed()) {
+            $this->skipRender();
+        }
+
+        return $answer->choice;
     }
 
     public function reportQuestion(ReportQuestion $reportQuestion): void
@@ -174,15 +194,28 @@ class Room extends Component
 
     /**
      * Called by any client whose countdown reached zero; the server clock decides.
+     * Returns whether the round is closed. A call that comes too early changes nothing,
+     * so it skips the render (a render would restart the clock and call this again);
+     * once the round is revealed, by this call or an earlier one, the reveal renders.
      */
-    public function timeUp(CloseExpiredRound $closeExpiredRound): void
+    public function timeUp(CloseExpiredRound $closeExpiredRound): bool
     {
         $this->requirePlayer();
         $round = $this->room->currentRound();
 
-        if ($round !== null) {
-            $closeExpiredRound->handle($round);
+        if ($round === null) {
+            return true;
         }
+
+        $closeExpiredRound->handle($round);
+
+        if ($round->isRevealed()) {
+            return true;
+        }
+
+        $this->skipRender();
+
+        return false;
     }
 
     public function nextRound(AdvanceRound $advanceRound): void
@@ -238,6 +271,7 @@ class Room extends Component
         $round = $this->room->isPlaying() ? $this->room->currentRound() : null;
         $answers = $round?->answers()->get()->keyBy('player_id') ?? collect();
         $players = $this->room->players;
+        $inLobby = $this->room->isInLobby();
 
         return view('livewire.game.room', [
             'player' => $player,
@@ -247,10 +281,10 @@ class Room extends Component
             'round' => $round,
             'answers' => $answers,
             'myAnswer' => $player !== null ? $answers->get($player->id) : null,
-            'allCategories' => Category::query()->forSource($this->room->question_source)->get(),
-            'openTdbAvailable' => Category::query()->forSource(QuestionSource::OpenTdb)->whereHas('questions')->exists(),
+            'allCategories' => $inLobby ? Category::query()->forSource($this->room->question_source)->get() : collect(),
+            'openTdbAvailable' => $inLobby && Category::query()->forSource(QuestionSource::OpenTdb)->whereHas('questions')->exists(),
             'shareUrl' => route('rooms.show', $this->room),
-            'liveUpdatesAvailable' => ! $this->room->isInLobby() || $liveUpdates->isAvailable(),
+            'liveUpdatesAvailable' => ! $inLobby || $liveUpdates->isAvailable(),
         ])
             ->title(__('Room :code', ['code' => $this->room->code]))
             ->layout('layouts::game', [

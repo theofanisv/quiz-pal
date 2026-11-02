@@ -9,7 +9,7 @@
 
 <div
     wire:key="round-{{ $round->id }}"
-    x-data="roundClock({ startsAt: {{ $round->started_at?->getTimestampMs() ?? 0 }}, endsAt: {{ $round->ends_at?->getTimestampMs() ?? 0 }}, serverNow: {{ now()->getTimestampMs() }}, totalMs: {{ $room->seconds_per_question * 1000 }} })"
+    x-data="roundClock({ startsAt: {{ $round->started_at?->getTimestampMs() ?? 0 }}, endsAt: {{ $round->ends_at?->getTimestampMs() ?? 0 }}, serverNow: {{ now()->getTimestampMs() }}, totalMs: {{ $room->seconds_per_question * 1000 }}, closed: @js($revealed) })"
     class="flex flex-col gap-5"
 >
     <div class="flex items-center justify-between gap-3">
@@ -33,11 +33,12 @@
         </flux:card>
 
         {{--
-            The pad highlights the tapped tile at once and locks the others while the server
-            call is in flight; the server's answer (selected / correct / wrong / dim) replaces
-            it on the next render, which also re-initialises this pad from the server. Alpine
-            toggles `tile-picking` (never `tile-picked`) so its clean-up cannot strip the
-            server's class. A rejected answer leaves the tile idle, so the pad unlocks.
+            The pad marks the tapped tile (with its tick) at once and locks the others. The
+            answer call skips the render while the round stays open, so the pad keeps the pick
+            the server confirmed and unlocks if the server rejected it. Any later render shows
+            the server's state (selected / correct / wrong / dim) and re-initialises the pad.
+            Alpine toggles `tile-picking` (never `tile-picked`) so its clean-up cannot strip
+            the server's class.
         --}}
         <div class="grid gap-3 sm:grid-cols-2" x-data="answerPad({ open: @js($canAnswer) })">
             @foreach ($round->displayedAnswers() as $index => $text)
@@ -108,36 +109,37 @@
                     @endforeach
                 </ol>
             @else
-                <ul class="flex flex-wrap gap-3">
+                {{--
+                    The server renders who had answered at that moment (`data-answered`); the
+                    PlayerAnswered broadcasts mark the rest in the browser, without a render.
+                --}}
+                <ul
+                    class="flex flex-wrap gap-3"
+                    x-data="answerStrip({ channel: @js(\App\Events\RoomUpdated::channelName($room->code)), roundId: {{ $round->id }}, answered: @js($answers->keys()->values()) })"
+                >
                     @foreach ($strip as $member)
-                        @php
-                            $hasAnswered = $answers->has($member->id);
-                        @endphp
-
-                        <li wire:key="strip-{{ $member->id }}" class="flex w-16 flex-col items-center gap-1 text-center">
+                        <li
+                            wire:key="strip-{{ $member->id }}"
+                            @if ($answers->has($member->id)) data-answered="true" @endif
+                            x-bind:data-answered="has({{ $member->id }})"
+                            class="group flex w-16 flex-col items-center gap-1 text-center"
+                        >
                             <span class="relative">
                                 <x-game.player-avatar
                                     :player="$member"
                                     size="md"
-                                    :class="$hasAnswered ? 'glow [--glow:var(--player-color)]' : 'opacity-40'"
+                                    class="opacity-40 [--glow:var(--player-color)] group-data-answered:opacity-100 group-data-answered:glow"
                                 />
 
-                                @if ($hasAnswered)
-                                    <span class="absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full bg-win text-night-950 ring-2 ring-night-800">
-                                        <flux:icon.check class="size-3" variant="micro" />
-                                    </span>
-                                @endif
+                                <span class="absolute -right-1 -bottom-1 hidden size-5 items-center justify-center rounded-full bg-win text-night-950 ring-2 ring-night-800 group-data-answered:flex">
+                                    <flux:icon.check class="size-3" variant="micro" />
+                                </span>
                             </span>
 
                             <span class="max-w-full truncate text-xs font-medium">{{ $member->name }}</span>
 
-                            @if ($hasAnswered)
-                                <span class="text-[10px] font-semibold text-win">{{ __('Answered') }}</span>
-                            @elseif (! $member->is_connected)
-                                <span class="text-[10px] text-ink-muted">{{ __('Away') }}</span>
-                            @else
-                                <span class="text-[10px] text-ink-muted">{{ __('Thinking…') }}</span>
-                            @endif
+                            <span class="hidden text-[10px] font-semibold text-win group-data-answered:inline">{{ __('Answered') }}</span>
+                            <span class="text-[10px] text-ink-muted group-data-answered:hidden">{{ $member->is_connected ? __('Thinking…') : __('Away') }}</span>
                         </li>
                     @endforeach
                 </ul>

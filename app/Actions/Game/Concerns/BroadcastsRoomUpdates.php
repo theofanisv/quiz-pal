@@ -2,8 +2,11 @@
 
 namespace App\Actions\Game\Concerns;
 
+use App\Events\PlayerAnswered;
 use App\Events\RoomUpdated;
+use App\Models\Player;
 use App\Models\Room;
+use App\Models\Round;
 use Throwable;
 
 trait BroadcastsRoomUpdates
@@ -19,6 +22,22 @@ trait BroadcastsRoomUpdates
     {
         try {
             $pending = broadcast(new RoomUpdated($room->fresh() ?? $room, $reason))->toOthers();
+
+            unset($pending);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+    }
+
+    /**
+     * Tell every client in the room, the answering one included, that a player answered.
+     * The browsers update their "who has answered" strip without asking the server to
+     * re-render. Failures are reported like those of announce().
+     */
+    protected function announceAnswer(Round $round, Player $player): void
+    {
+        try {
+            $pending = broadcast(new PlayerAnswered($round, $player));
 
             unset($pending);
         } catch (Throwable $exception) {

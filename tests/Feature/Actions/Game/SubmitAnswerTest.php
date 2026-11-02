@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Game\SubmitAnswer;
+use App\Events\PlayerAnswered;
 use App\Events\RoomUpdated;
 use App\Exceptions\GameException;
 use App\Models\Player;
@@ -75,16 +76,18 @@ it('keeps the first answer when a player answers twice', function () {
         ->and($round->answers()->count())->toBe(1);
 });
 
-it('tells the room but keeps the round open while someone has not answered', function () {
+it('tells the room who answered but keeps the round open while someone has not answered', function () {
     [$room, $round] = openRound();
     Player::factory()->for($room)->create();
-    Event::fake([RoomUpdated::class]);
+    Event::fake([PlayerAnswered::class, RoomUpdated::class]);
 
     app(SubmitAnswer::class)->handle($round, $room->admin, 2);
 
     expect($round->fresh()->isRevealed())->toBeFalse()
         ->and($room->admin->fresh()->score)->toBe(0);
-    Event::assertDispatched(RoomUpdated::class, fn (RoomUpdated $event) => $event->reason === 'answered');
+    Event::assertDispatched(PlayerAnswered::class, fn (PlayerAnswered $event) => $event->broadcastOn()[0]->name === "presence-room.{$room->code}"
+        && $event->broadcastWith() === ['round_id' => $round->id, 'player_id' => $room->admin->id]);
+    Event::assertNotDispatched(RoomUpdated::class);
 });
 
 it('reveals the round and adds the points once every connected player has answered', function () {
