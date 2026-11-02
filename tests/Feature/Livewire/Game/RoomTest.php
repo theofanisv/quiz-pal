@@ -3,6 +3,7 @@
 use App\Enums\QuestionSource;
 use App\Enums\RoomStatus;
 use App\Livewire\Game\Room as RoomPage;
+use App\Models\Answer;
 use App\Models\Category;
 use App\Models\Player;
 use App\Models\Question;
@@ -315,6 +316,32 @@ describe('playing', function () {
 
         expect($player->fresh()->score)->toBe(1000)
             ->and($room->admin->fresh()->score)->toBe(0);
+    });
+
+    it('shows how fast each player answered once the round is revealed', function () {
+        freezeSecond();
+        [$room, $round, $player] = roomInPlay();
+        travel(4)->seconds();
+        Livewire::actingAs($player, 'player')->test(RoomPage::class, ['room' => $room])->call('answer', 1);
+        travel(2)->seconds();
+
+        Livewire::actingAs($room->admin, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->call('answer', 0)
+            ->assertSee('Scores')
+            ->assertSeeInOrder(['Nikos', '4.0 s', 'Maria', '6.0 s']);
+    });
+
+    it('shows no answer time for answers recorded before speed was stored', function () {
+        [$room, $round, $player] = roomInPlay();
+        Answer::factory()->for($round)->for($player)->create(['elapsed_ms' => null, 'points' => 1000]);
+        $round->update(['revealed_at' => now()]);
+
+        Livewire::actingAs($room->admin, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->assertSee('Scores')
+            ->assertSee('+1000')
+            ->assertDontSee('0.0 s');
     });
 
     it('ignores time up before the timer has run out', function () {
