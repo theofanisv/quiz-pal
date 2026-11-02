@@ -31,8 +31,12 @@ jobs:
         with:
           node-version: '22'
 
+      # The runner has no MySQL server, so setup migrates into SQLite.
+      # Only this step gets the override; the tests use phpunit.xml's in-memory SQLite.
       - name: Setup Application
         run: composer setup
+        env:
+          DB_CONNECTION: sqlite
 
       - name: Run CI Checks
         run: composer ci:check
