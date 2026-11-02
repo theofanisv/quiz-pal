@@ -94,7 +94,7 @@
                         wire:key="source-{{ $source->value }}"
                         :value="$source->value"
                         :label="$source->label()"
-                        :description="$synced ? $source->description() : __('Not imported yet: run php artisan db:seed --class=QuestionSeeder on the server.')"
+                        :description="$synced ? $source->description() : __('Not available on this server yet.')"
                         :disabled="! $synced"
                     />
                 @endforeach

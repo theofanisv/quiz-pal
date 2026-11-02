@@ -13,9 +13,11 @@ use Illuminate\Support\Sleep;
 use RuntimeException;
 
 /**
- * Mirror the multiple-choice questions of Open Trivia DB into the local question bank,
- * one category per OpenTDB category, tagged with the "opentdb" source. Running it again
- * updates the existing rows, so it is safe to schedule.
+ * Developer tool: pull the multiple-choice questions of Open Trivia DB into the local
+ * question bank, one category per OpenTDB category, tagged with the "opentdb" source, so
+ * that `quiz:export-opentdb` can write the committed snapshot. The rows it writes are
+ * English only, so a run clears local Greek text; the exporter restores the translations
+ * from the committed files.
  *
  * OpenTDB serves one category per request, at most 50 questions per page, and one request
  * per 5 seconds per IP. With a session token it answers code 4 as soon as the requested

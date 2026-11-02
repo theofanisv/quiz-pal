@@ -114,3 +114,19 @@ it('exports nothing when no open trivia db category exists', function () {
         ->and(glob("{$directory}/*.json"))->toBe([]);
     File::deleteDirectory($directory);
 });
+
+it('finds the existing file by category id when the category was renamed, and replaces it', function () {
+    $directory = exportDirectory();
+    $general = Category::factory()->openTdb(9)->create(['name_en' => 'General Knowledge', 'name_el' => 'Γενικές γνώσεις']);
+    Question::factory()->for($general)->englishOnly()->create(['text_en' => 'Kept?', 'answers_en' => ['a', 'b', 'c', 'd'], 'correct_index' => 0, 'difficulty' => null]);
+    file_put_contents("{$directory}/09-general.json", json_encode([
+        'category' => ['slug' => 'opentdb-9', 'order' => 9, 'source' => 'opentdb', 'external_id' => 9, 'name' => ['en' => 'General', 'el' => 'Γενικά']],
+        'questions' => [['text' => ['en' => 'Kept?', 'el' => 'Κρατιέται;'], 'answers' => ['en' => ['a', 'b', 'c', 'd'], 'el' => ['α', 'β', 'γ', 'δ']], 'correct' => 0]],
+    ], JSON_UNESCAPED_UNICODE));
+
+    app(ExportOpenTdbQuestions::class)->handle($directory);
+
+    expect(glob("{$directory}/*.json"))->toBe(["{$directory}/09-general-knowledge.json"])
+        ->and(readSnapshot("{$directory}/09-general-knowledge.json")['questions'][0]['text']['el'])->toBe('Κρατιέται;');
+    File::deleteDirectory($directory);
+});

@@ -1,0 +1,49 @@
+{
+    "attribution": "Open Trivia Database (https://opentdb.com), CC BY-SA 4.0",
+    "category": {
+        "slug": "opentdb-30",
+        "order": 30,
+        "source": "opentdb",
+        "external_id": 30,
+        "name": {
+            "en": "Science: Gadgets",
+            "el": "Επιστήμη: Gadgets"
+        }
+    },
+    "questions": [
+        {"text":{"en":"Apple's Voice Assistant, Siri, debuted on which iPhone?"},"answers":{"en":["iPhone 4S","iPhone 6S","iPhone 3GS","iPhone 5S"]},"correct":0,"difficulty":2},
+        {"text":{"en":"How does a centrifuge separate heavy and light particles?"},"answers":{"en":["Spinning","Vibrating","Sifting","Ionizing"]},"correct":0,"difficulty":2},
+        {"text":{"en":"In what year was the Oculus Rift revealed to the public through a Kickstarter campaign?"},"answers":{"en":["2012","2010","2011","2013"]},"correct":0,"difficulty":2},
+        {"text":{"en":"Mobile hardware and software company \"Blackberry Limited\" was founded in which country?"},"answers":{"en":["Canada","Norway","United States of America","United Kingdom"]},"correct":0,"difficulty":2},
+        {"text":{"en":"Out of all of the NASA Space Shuttles, which 2 have been destroyed in disasters?"},"answers":{"en":["Challenger and Columbia","Enterprise and Atlantis","Discovery and Endeavour","None of the Above"]},"correct":0,"difficulty":2},
+        {"text":{"en":"The term \"battery\" to describe an electrical storage device was coined by?"},"answers":{"en":["Benjamin Franklin","Nikola Tesla","Luigi Galvani"," Alessandro Volta"]},"correct":0,"difficulty":1},
+        {"text":{"en":"This former Air Force and NASA engineer is the inventor of the Super Soaker water gun."},"answers":{"en":["Lonnie Johnson","Bruce D'Andrade","Frances Northcutt","Ashitey Trebi-Ollennu"]},"correct":0,"difficulty":2},
+        {"text":{"en":"What are the base station trackers used for the HTC Vive called?"},"answers":{"en":["Lighthouse","Motion","Constellation ","Trackers"]},"correct":0,"difficulty":2},
+        {"text":{"en":"What does GPS stand for?"},"answers":{"en":["Global Positioning System","Global Personal System","General Positioning System","General Personal Satellite"]},"correct":0,"difficulty":1},
+        {"text":{"en":"What does SSD stand for in the context of computer storage?"},"answers":{"en":[" Solid State Drive","Software Storage Device","Super Speed Data","Secure System Disk"]},"correct":0,"difficulty":1},
+        {"text":{"en":"What is the \"Mitsubishi Wakamaru\"?"},"answers":{"en":["A robot","A pickup truck","An motorcycle","A motorboat"]},"correct":0,"difficulty":2},
+        {"text":{"en":"What is the most significant side venture the popular firearms company, Remington, has pursued?"},"answers":{"en":["Typewriters","Blenders","Ceiling Fans","Door Knobs"]},"correct":0,"difficulty":2},
+        {"text":{"en":"What is the name of a simple machine that is made up of a stiff arm that can move freely around a fixed point?"},"answers":{"en":["Lever","Wedge","Screw","Pulley"]},"correct":0,"difficulty":1},
+        {"text":{"en":"What is the SI unit for resistance?"},"answers":{"en":["Ohms","Ampheres","Siemens","Volts"]},"correct":0,"difficulty":1},
+        {"text":{"en":"What round is a classic AK-47 chambered in?"},"answers":{"en":["7.62x39mm","7.62x51mm","5.56x45mm","5.45x39mm"]},"correct":0,"difficulty":1},
+        {"text":{"en":"What was the first Infinity Coaster in the world and where is it located?"},"answers":{"en":["The Smiler, Alton Towers, UK","Madagascar Mad Pursuit, Motiongate Dubai, UAE","Gold Rush, Slagharen, Netherlands ","Monster, Adventureland Altoona, USA"]},"correct":0,"difficulty":2},
+        {"text":{"en":"When did the CD begin to appear on the consumer market?"},"answers":{"en":["1982","1992","1972","1962"]},"correct":0,"difficulty":1},
+        {"text":{"en":"When was the compact disc player first released?"},"answers":{"en":["1982","1983","1981","1980"]},"correct":0,"difficulty":2},
+        {"text":{"en":"When was the DVD invented?"},"answers":{"en":["1995","2000","1990","1980"]},"correct":0,"difficulty":1},
+        {"text":{"en":"When was the iPhone released?"},"answers":{"en":["2007","2005","2006","2004"]},"correct":0,"difficulty":1},
+        {"text":{"en":"When was the Tamagotchi digital pet released?"},"answers":{"en":["1996","1989","1992","1990"]},"correct":0,"difficulty":1},
+        {"text":{"en":"Which buzzword did Apple Inc. use to describe their removal of the headphone jack?"},"answers":{"en":["Courage","Innovation","Revolution","Bravery"]},"correct":0,"difficulty":1},
+        {"text":{"en":"Which company designed the \"Betamax\" video cassette format?"},"answers":{"en":["Sony","Panasonic","LG","Fujitsu"]},"correct":0,"difficulty":2},
+        {"text":{"en":"Which company developed the Hololens?"},"answers":{"en":["Microsoft","HTC","Oculus","Tobii"]},"correct":0,"difficulty":2},
+        {"text":{"en":"Which company manufactured the iconic TR-808 drum machine?"},"answers":{"en":["Roland","Technics","Korg","Casio"]},"correct":0,"difficulty":2},
+        {"text":{"en":"Which gaming console is developed by Sony?"},"answers":{"en":["PlayStation","Xbox","Atari","Nintendo Switch"]},"correct":0,"difficulty":1},
+        {"text":{"en":"Which of the following cellular device companies is NOT headquartered in Asia?"},"answers":{"en":["Nokia","LG Electronics","Samsung","HTC"]},"correct":0,"difficulty":3},
+        {"text":{"en":"Which of the following is not a type of computer mouse?"},"answers":{"en":["Smoothie mouse","Drum mouse","Trackball mouse","Optical mouse"]},"correct":0,"difficulty":1},
+        {"text":{"en":"Which of the following is the standard THX subwoofer crossover frequency?"},"answers":{"en":["80 Hz","70 Hz","90 Hz","100 Hz"]},"correct":0,"difficulty":3},
+        {"text":{"en":"Which of the following is used to measure blood pressure?"},"answers":{"en":["Sphygmomanometer","Barometer","Ruler","Haemoerythrometer"]},"correct":0,"difficulty":3},
+        {"text":{"en":"Which round does a WW2 M1 Garand fire?"},"answers":{"en":[".30-06",".308","7.62","7.62x51mm"]},"correct":0,"difficulty":3},
+        {"text":{"en":"Which virtual assistant is developed by Amazon?"},"answers":{"en":["Alexa","Google Assistant","Siri","Cortana"]},"correct":0,"difficulty":1},
+        {"text":{"en":"Who built the first laser?"},"answers":{"en":["Theodore Harold Maiman","Nikola Tesla","Jack Kilby","Edith Clarke"]},"correct":0,"difficulty":3},
+        {"text":{"en":"Who patented a steam engine that produced continuous rotary motion?"},"answers":{"en":["James Watt","Nikola Tesla","Albert Einstein","Alessandro Volta"]},"correct":0,"difficulty":2}
+    ]
+}

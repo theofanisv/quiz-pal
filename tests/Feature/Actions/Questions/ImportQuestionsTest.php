@@ -127,3 +127,43 @@ it('imports the built-in bank and the open trivia db snapshot together', functio
         ->and(Category::query()->forSource(QuestionSource::Custom)->count())->toBe(10)
         ->and(Category::query()->forSource(QuestionSource::OpenTdb)->count())->toBe($snapshotFiles);
 });
+
+it('imports every bundled open trivia db snapshot file', function () {
+    $result = app(ImportQuestions::class)->handleDirectory(database_path('data/opentdb'));
+
+    $categories = Category::query()->get();
+    expect($result['files'])->toBe(24)
+        ->and($categories)->toHaveCount(24)
+        ->and($categories->every(fn (Category $category): bool => $category->source === QuestionSource::OpenTdb && $category->external_id !== null))->toBeTrue()
+        ->and(Question::query()->count())->toBe($result['questions']);
+});
+
+it('rejects an open trivia db file whose slug does not match its external id', function () {
+    $path = writeQuestionFile([
+        'category' => ['slug' => 'opentdb-09', 'source' => 'opentdb', 'external_id' => 9, 'name' => ['en' => 'General', 'el' => 'Γενικά']],
+        'questions' => [],
+    ]);
+
+    expect(fn () => app(ImportQuestions::class)->handleFile($path))
+        ->toThrow(InvalidArgumentException::class, 'opentdb-9');
+});
+
+it('rejects an open trivia db file without a numeric external id', function () {
+    $path = writeQuestionFile([
+        'category' => ['slug' => 'opentdb-9', 'source' => 'opentdb', 'external_id' => '9', 'name' => ['en' => 'General', 'el' => 'Γενικά']],
+        'questions' => [],
+    ]);
+
+    expect(fn () => app(ImportQuestions::class)->handleFile($path))
+        ->toThrow(InvalidArgumentException::class, 'external_id');
+});
+
+it('rejects question text longer than the column allows', function () {
+    $path = writeQuestionFile([
+        'category' => ['slug' => 'long', 'name' => ['en' => 'Long', 'el' => 'Μακρύ']],
+        'questions' => [['text' => ['en' => 'Short?', 'el' => str_repeat('α', 501)], 'answers' => ['en' => ['a', 'b', 'c', 'd'], 'el' => ['α', 'β', 'γ', 'δ']], 'correct' => 0]],
+    ]);
+
+    expect(fn () => app(ImportQuestions::class)->handleFile($path))
+        ->toThrow(InvalidArgumentException::class, '500');
+});
