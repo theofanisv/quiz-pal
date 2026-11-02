@@ -79,6 +79,17 @@ php artisan quiz:import-questions path/to/file.json
 
 Importing the same file twice updates the existing rows instead of duplicating them, so you can edit a file and re-import it. The test suite validates every bundled file (four distinct answers in both languages, a valid correct index, no duplicate questions).
 
+### Open Trivia DB
+
+A room can also play the multiple-choice questions of [Open Trivia DB](https://opentdb.com) (English only, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)). They are mirrored into the local question bank, so a game never waits on the network:
+
+```bash
+php artisan quiz:sync-opentdb                 # every category; about 20 minutes, OpenTDB allows one request every 5 seconds
+php artisan quiz:sync-opentdb --category=9    # only the given OpenTDB category ids
+```
+
+Running it again updates the existing rows, and the scheduler repeats it weekly. The admin picks the question source in the lobby; the Open Trivia DB option stays disabled until the first sync has run.
+
 ## Development
 
 ```bash

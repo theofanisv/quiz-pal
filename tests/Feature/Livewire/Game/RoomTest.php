@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\QuestionSource;
 use App\Enums\RoomStatus;
 use App\Livewire\Game\Room as RoomPage;
 use App\Models\Category;
@@ -145,6 +146,47 @@ describe('lobby', function () {
         'rounds' => ['totalRounds', 'The rounds field is required.', 'total_rounds', 10],
         'seconds per question' => ['secondsPerQuestion', 'The seconds per question field is required.', 'seconds_per_question', 20],
     ]);
+
+    it('lets the admin switch to open trivia db and swaps the category list', function () {
+        $room = Room::factory()->withAdmin()->create();
+        $room->categories()->attach(Category::factory()->create(['name_en' => 'Greek History']));
+        $trivia = Category::factory()->openTdb(18)->has(Question::factory()->englishOnly())->create(['name_en' => 'Science: Computers']);
+
+        Livewire::actingAs($room->admin, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->assertSee('Question source')
+            ->assertSee('Greek History')
+            ->assertDontSee('Science: Computers')
+            ->assertDontSee('Not synced yet')
+            ->set('questionSource', 'opentdb')
+            ->assertHasNoErrors()
+            ->assertSee('Science: Computers')
+            ->assertDontSee('Greek History');
+
+        $room->refresh();
+        expect($room->question_source)->toBe(QuestionSource::OpenTdb)
+            ->and($room->categories->pluck('id')->all())->toBe([$trivia->id]);
+    });
+
+    it('tells the admin to sync open trivia db before it can be chosen', function () {
+        $room = Room::factory()->withAdmin()->create();
+        $room->categories()->attach(Category::factory()->create());
+
+        Livewire::actingAs($room->admin, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->assertSee('Open Trivia DB')
+            ->assertSee('Not synced yet');
+    });
+
+    it('shows the question source to the other players', function () {
+        $room = Room::factory()->withAdmin()->create(['question_source' => QuestionSource::OpenTdb]);
+        $player = Player::factory()->for($room)->create();
+
+        Livewire::actingAs($player, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->assertSee('Question source')
+            ->assertSee('Open Trivia DB');
+    });
 
     it('lets the admin remove a player', function () {
         $room = Room::factory()->withAdmin()->create();
@@ -327,6 +369,23 @@ describe('playing', function () {
             ->assertSee('Nikos wins!')
             ->assertSeeInOrder(['Nikos', '1200', 'Maria', '800'])
             ->assertSee('Play again');
+    });
+
+    it('credits open trivia db while playing its questions', function () {
+        [$room, $round, $player] = roomInPlay();
+        $room->update(['question_source' => QuestionSource::OpenTdb]);
+
+        Livewire::actingAs($player, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->assertSee('Open Trivia Database');
+    });
+
+    it('does not credit open trivia db for the built-in questions', function () {
+        [$room, $round, $player] = roomInPlay();
+
+        Livewire::actingAs($player, 'player')
+            ->test(RoomPage::class, ['room' => $room])
+            ->assertDontSee('Open Trivia Database');
     });
 
     it('marks players who are not on the presence channel as away', function () {

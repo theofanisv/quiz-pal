@@ -77,5 +77,13 @@
     "The game cannot start until the live update server (Reverb) is back. Players can still join and get ready.": "Το παιχνίδι δεν μπορεί να ξεκινήσει μέχρι να επανέλθει ο διακομιστής ζωντανών ενημερώσεων (Reverb). Οι παίκτες μπορούν να μπουν και να δηλώσουν έτοιμοι.",
     "rounds": "γύροι",
     "seconds per question": "δευτερόλεπτα ανά ερώτηση",
-    "categories": "κατηγορίες"
+    "categories": "κατηγορίες",
+    "Question source": "Πηγή ερωτήσεων",
+    "question source": "πηγή ερωτήσεων",
+    "Built-in questions": "Ενσωματωμένες ερωτήσεις",
+    "Open Trivia DB": "Open Trivia DB",
+    "Bilingual questions written for QuizPal.": "Δίγλωσσες ερωτήσεις γραμμένες για το QuizPal.",
+    "Thousands of community questions, in English only.": "Χιλιάδες ερωτήσεις από την κοινότητα, μόνο στα αγγλικά.",
+    "Not synced yet: run php artisan quiz:sync-opentdb on the server.": "Δεν έχει συγχρονιστεί ακόμα: τρέξε php artisan quiz:sync-opentdb στον διακομιστή.",
+    "Questions from the Open Trivia Database (CC BY-SA 4.0).": "Ερωτήσεις από την Open Trivia Database (CC BY-SA 4.0)."
 }

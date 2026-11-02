@@ -12,6 +12,7 @@ use App\Actions\Game\StartGame;
 use App\Actions\Game\SubmitAnswer;
 use App\Actions\Game\TrackPresence;
 use App\Actions\Game\UpdateRoomSettings;
+use App\Enums\QuestionSource;
 use App\Events\RoomUpdated;
 use App\Exceptions\GameException;
 use App\Models\Category;
@@ -44,6 +45,8 @@ class Room extends Component
 
     /** @var array<int, int> */
     public array $categories = [];
+
+    public string $questionSource = 'custom';
 
     public function mount(RoomModel $room): void
     {
@@ -95,7 +98,11 @@ class Room extends Component
 
     public function updated(string $property): void
     {
-        if (in_array(Str::before($property, '.'), ['totalRounds', 'secondsPerQuestion', 'categories'], true)) {
+        if ($property === 'questionSource') {
+            $this->categories = $this->categoryIdsFor($this->questionSource());
+        }
+
+        if (in_array(Str::before($property, '.'), ['totalRounds', 'secondsPerQuestion', 'questionSource', 'categories'], true)) {
             $this->saveSettings();
         }
     }
@@ -107,6 +114,7 @@ class Room extends Component
         $this->guard(fn () => app(UpdateRoomSettings::class)->handle($this->room, $player, [
             'total_rounds' => $this->totalRounds,
             'seconds_per_question' => $this->secondsPerQuestion,
+            'question_source' => $this->questionSource,
             'categories' => $this->categories,
         ]));
     }
@@ -213,7 +221,8 @@ class Room extends Component
             'round' => $round,
             'answers' => $answers,
             'myAnswer' => $player !== null ? $answers->get($player->id) : null,
-            'allCategories' => Category::query()->orderBy('sort_order')->orderBy('name_en')->get(),
+            'allCategories' => Category::query()->forSource($this->room->question_source)->get(),
+            'openTdbAvailable' => Category::query()->forSource(QuestionSource::OpenTdb)->whereHas('questions')->exists(),
             'shareUrl' => route('rooms.show', $this->room),
             'liveUpdatesAvailable' => ! $this->room->isInLobby() || $liveUpdates->isAvailable(),
         ])->title(__('Room :code', ['code' => $this->room->code]));
@@ -223,7 +232,23 @@ class Room extends Component
     {
         $this->totalRounds = $this->room->total_rounds;
         $this->secondsPerQuestion = $this->room->seconds_per_question;
+        $this->questionSource = $this->room->question_source->value;
         $this->categories = $this->room->categories()->pluck('categories.id')->map(fn (int $id): int => $id)->all();
+    }
+
+    private function questionSource(): QuestionSource
+    {
+        return QuestionSource::tryFrom($this->questionSource) ?? QuestionSource::Custom;
+    }
+
+    /**
+     * Every category of a source, selected whenever the admin switches to it.
+     *
+     * @return array<int, int>
+     */
+    private function categoryIdsFor(QuestionSource $source): array
+    {
+        return Category::query()->forSource($source)->pluck('id')->map(fn (int $id): int => $id)->all();
     }
 
     /**

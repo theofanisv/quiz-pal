@@ -126,5 +126,9 @@
                 <flux:text class="text-center text-sm">{{ __('Waiting for :name to continue.', ['name' => $room->admin?->name]) }}</flux:text>
             @endif
         @endif
+
+        @if ($room->question_source === \App\Enums\QuestionSource::OpenTdb)
+            <flux:text class="text-center text-xs">{{ __('Questions from the Open Trivia Database (CC BY-SA 4.0).') }}</flux:text>
+        @endif
     </div>
 </div>

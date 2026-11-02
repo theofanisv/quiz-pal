@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'opentdb' => [
+        'url' => 'https://opentdb.com',
+    ],
+
 ];

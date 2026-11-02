@@ -33,4 +33,12 @@ class QuestionFactory extends Factory
     {
         return $this->state(fn (array $attributes): array => ['correct_index' => $index]);
     }
+
+    /**
+     * A question that only exists in English, like the ones synced from Open Trivia DB.
+     */
+    public function englishOnly(): static
+    {
+        return $this->state(fn (array $attributes): array => ['text_el' => null, 'answers_el' => null]);
+    }
 }

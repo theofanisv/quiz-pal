@@ -84,6 +84,22 @@
                 />
             </div>
 
+            <flux:radio.group wire:model.live="questionSource" :label="__('Question source')">
+                @foreach (\App\Enums\QuestionSource::cases() as $source)
+                    @php
+                        $synced = $source !== \App\Enums\QuestionSource::OpenTdb || $openTdbAvailable;
+                    @endphp
+
+                    <flux:radio
+                        wire:key="source-{{ $source->value }}"
+                        :value="$source->value"
+                        :label="$source->label()"
+                        :description="$synced ? $source->description() : __('Not synced yet: run php artisan quiz:sync-opentdb on the server.')"
+                        :disabled="! $synced"
+                    />
+                @endforeach
+            </flux:radio.group>
+
             <flux:checkbox.group wire:model.live="categories" :label="__('Categories')">
                 @foreach ($allCategories as $category)
                     <flux:checkbox wire:key="category-{{ $category->id }}" :value="$category->id" :label="$category->name" />
@@ -96,6 +112,9 @@
 
                 <dt class="text-zinc-500 dark:text-zinc-400">{{ __('Seconds per question') }}</dt>
                 <dd class="font-medium">{{ $room->seconds_per_question }}</dd>
+
+                <dt class="text-zinc-500 dark:text-zinc-400">{{ __('Question source') }}</dt>
+                <dd class="font-medium">{{ $room->question_source->label() }}</dd>
 
                 <dt class="text-zinc-500 dark:text-zinc-400">{{ __('Categories') }}</dt>
                 <dd class="font-medium">{{ $room->categories->pluck('name')->join(', ') }}</dd>

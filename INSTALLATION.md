@@ -117,13 +117,16 @@ If the server has several PHP versions, call the one that serves the site explic
 
    Point `.env` at it with `DB_CONNECTION=mysql`, `DB_HOST=127.0.0.1`, `DB_PORT=3306`, `DB_DATABASE`, `DB_USERNAME` and
    `DB_PASSWORD` (`.env.example` ships with `DB_CONNECTION=sqlite`, so set it explicitly), then
-   `php artisan migrate --force` and `php artisan db:seed --class=QuestionSeeder --force`.
+   `php artisan migrate --force` and `php artisan db:seed --class=QuestionSeeder --force`. To offer Open Trivia DB
+   questions as well, run `php artisan quiz:sync-opentdb` once (about 20 minutes: OpenTDB allows one request every
+   5 seconds); the scheduler refreshes the mirror weekly.
 
    An installation that ran on SQLite before (until November 2026) is switched the same way: point `.env` at MySQL,
    migrate, seed, then `php artisan optimize`. The old `database/database.sqlite` is left alone; nothing is copied from it.
 5. **Cache**: `php artisan optimize`. Run it again after every change to `.env`, because the configuration is cached.
 6. **Permissions**: `storage/` and `bootstrap/cache/` must be writable by the user PHP-FPM runs as. Keep `.env` readable only by that user.
-7. **Scheduler**: add a cron entry so idle rooms get cleaned up every day:
+7. **Scheduler**: add a cron entry so idle rooms get cleaned up every day and the Open Trivia DB mirror is refreshed
+   every week:
 
    ```cron
    * * * * * cd /var/www/quizpal && php artisan schedule:run >> /dev/null 2>&1

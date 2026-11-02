@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\QuestionSource;
 use App\Enums\RoomStatus;
 use App\Support\RoomCode;
 use Database\Factories\RoomFactory;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['code', 'admin_player_id', 'status', 'total_rounds', 'seconds_per_question', 'current_round'])]
+#[Fillable(['code', 'admin_player_id', 'status', 'total_rounds', 'seconds_per_question', 'current_round', 'question_source'])]
 #[RouteKey('code')]
 class Room extends Model
 {
@@ -45,6 +46,7 @@ class Room extends Model
     {
         return [
             'status' => RoomStatus::class,
+            'question_source' => QuestionSource::class,
             'total_rounds' => 'integer',
             'seconds_per_question' => 'integer',
             'current_round' => 'integer',

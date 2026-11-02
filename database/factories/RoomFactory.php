@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\QuestionSource;
 use App\Enums\RoomStatus;
 use App\Models\Player;
 use App\Models\Room;
@@ -21,6 +22,7 @@ class RoomFactory extends Factory
         return [
             'code' => Str::upper(fake()->unique()->lexify('????')),
             'status' => RoomStatus::Lobby,
+            'question_source' => QuestionSource::Custom,
             'total_rounds' => 10,
             'seconds_per_question' => 20,
             'current_round' => 0,
