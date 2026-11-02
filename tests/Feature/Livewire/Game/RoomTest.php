@@ -333,10 +333,12 @@ describe('playing', function () {
 
         Livewire::actingAs($player, 'player')
             ->test(RoomPage::class, ['room' => $room])
-            ->call('answer', 1)
-            ->assertSeeHtml('data-state="correct"')
+            ->call('answer', 0)
+            ->assertSeeHtmlInOrder(['data-choice="0"', 'data-state="dim"'])
             ->assertDontSeeHtml('data-state="selected"')
             ->assertDontSeeHtml('data-state="wrong"');
+
+        expect($round->answers()->count())->toBe(0);
     });
 
     it('cues the right sound for each player after the reveal', function () {

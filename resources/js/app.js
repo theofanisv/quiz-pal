@@ -126,12 +126,22 @@ document.addEventListener('alpine:init', () => {
             this.picked = choice;
             sound().play('select');
 
-            await this.$wire.answer(choice);
+            // A request that fails (Livewire reports it) or never comes back must not keep the
+            // pad locked: the tile is released as soon as the server has not recorded the answer.
+            const release = () => {
+                if (this.$root.querySelector(`[data-choice="${choice}"]`)?.dataset.state === 'idle') {
+                    this.picked = null;
+                }
+            };
+            const watchdog = setTimeout(release, 5000);
 
-            const tile = this.$root.querySelector(`[data-choice="${choice}"]`);
-
-            if (tile?.dataset.state === 'idle') {
-                this.picked = null;
+            try {
+                await this.$wire.answer(choice);
+            } catch {
+                // Already reported by Livewire.
+            } finally {
+                clearTimeout(watchdog);
+                release();
             }
         },
     }));

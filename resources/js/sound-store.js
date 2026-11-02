@@ -4,6 +4,15 @@ const MUSIC_KEY = 'quizpal.sound.music';
 const SFX_KEY = 'quizpal.sound.sfx';
 const MUSIC_SCREENS = ['play', 'results'];
 
+/**
+ * Browsers disagree on which touch event counts as the user gesture that may start audio
+ * (pointerdown only for a mouse, pointerup or touchend for a finger, click everywhere), so
+ * the unlock is retried on all of them until the context runs.
+ */
+const UNLOCK_EVENTS = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
+
+let detachUnlockListeners = null;
+
 const readSetting = (key, fallback) => {
     try {
         return localStorage.getItem(key) ?? fallback;
@@ -19,6 +28,8 @@ const writeSetting = (key, value) => {
         // Private mode or storage disabled: the setting lasts for this page only.
     }
 };
+
+const insideUserGesture = () => navigator.userActivation?.isActive ?? false;
 
 /**
  * The Alpine `sound` store: the music and sound-effect toggles (remembered per device),
@@ -40,21 +51,33 @@ export const SOUND_STORE = {
         this.synth = createSynth();
         this.track = createMusic('/sounds/music.mp3');
 
-        const unlock = () => this.unlock();
+        const attempt = () => {
+            this.unlock();
+        };
 
-        window.addEventListener('pointerdown', unlock, { capture: true, once: true });
-        window.addEventListener('keydown', unlock, { capture: true, once: true });
+        UNLOCK_EVENTS.forEach((event) => window.addEventListener(event, attempt, { capture: true, passive: true }));
+        detachUnlockListeners = () => UNLOCK_EVENTS.forEach((event) => window.removeEventListener(event, attempt, { capture: true }));
     },
 
-    /** Marks audio as unlocked by a user gesture and starts the music if it should play. */
+    /**
+     * Tries to start the audio context (only a user gesture can). Once it runs, audio is
+     * unlocked for the rest of the page and the music starts if it should be playing.
+     */
     async unlock() {
         if (this.unlocked) {
-            return;
+            return true;
         }
 
-        await this.synth.unlock();
+        if (!(await this.synth.unlock())) {
+            return false;
+        }
+
         this.unlocked = true;
+        detachUnlockListeners?.();
+        detachUnlockListeners = null;
         this.syncMusic();
+
+        return true;
     },
 
     async toggleMusic() {
@@ -80,10 +103,22 @@ export const SOUND_STORE = {
         this.syncMusic();
     },
 
-    /** Plays one of: click, select, correct, wrong, tick, tickFinal. */
+    /**
+     * Plays one of: click, select, correct, wrong, tick, tickFinal. Before the unlock a cue
+     * plays only when it comes from a user gesture (a tap or a key), which is also what
+     * unlocks the context; any other cue is dropped rather than queued for later.
+     */
     play(cue) {
-        if (!this.sfx || !this.unlocked) {
+        if (!this.sfx) {
             return;
+        }
+
+        if (!this.unlocked) {
+            if (!insideUserGesture()) {
+                return;
+            }
+
+            this.unlock();
         }
 
         switch (cue) {

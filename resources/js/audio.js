@@ -1,8 +1,8 @@
 /**
  * The game's sound effects, synthesised with the Web Audio API so there is nothing to
  * download. The AudioContext is created lazily and can only start running inside a user
- * gesture, which is what `unlock()` is for; a cue on a context that is not running is
- * silently dropped.
+ * gesture, which is what `unlock()` is for. A note scheduled on a suspended context inside
+ * a gesture plays as soon as the context runs, which browsers allow in that gesture.
  */
 export function createSynth() {
     let context = null;
@@ -32,7 +32,7 @@ export function createSynth() {
     const note = ({ type = 'sine', frequency, glideTo = null, duration, at = 0, gain = 1, lowpass = null }) => {
         const ctx = ensureContext();
 
-        if (ctx === null || ctx.state !== 'running') {
+        if (ctx === null) {
             return;
         }
 
@@ -68,15 +68,22 @@ export function createSynth() {
     };
 
     return {
-        /** Resumes the context; returns whether it is running. Call inside a user gesture. */
+        /**
+         * Asks the context to run; returns whether it does. Works only inside a user gesture,
+         * and a resume() outside one may never settle, so the wait is capped.
+         */
         async unlock() {
             const ctx = ensureContext();
 
-            if (ctx !== null && ctx.state === 'suspended') {
-                await ctx.resume().catch(() => {});
+            if (ctx === null) {
+                return false;
             }
 
-            return ctx?.state === 'running';
+            if (ctx.state !== 'running') {
+                await Promise.race([ctx.resume().catch(() => {}), new Promise((resolve) => setTimeout(resolve, 300))]);
+            }
+
+            return ctx.state === 'running';
         },
 
         click() {
