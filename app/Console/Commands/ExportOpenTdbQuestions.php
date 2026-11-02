@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Actions\Questions\ExportOpenTdbQuestions as ExportOpenTdbQuestionsAction;
 use Illuminate\Console\Command;
+use JsonException;
+use RuntimeException;
 
 class ExportOpenTdbQuestions extends Command
 {
@@ -19,10 +21,16 @@ class ExportOpenTdbQuestions extends Command
         /** @var list<string> $categories */
         $categories = (array) $this->option('category');
 
-        $summary = $export->handle(
-            is_string($path) ? $path : database_path('data/opentdb'),
-            $categories === [] ? null : array_map(intval(...), $categories),
-        );
+        try {
+            $summary = $export->handle(
+                is_string($path) ? $path : database_path('data/opentdb'),
+                $categories === [] ? null : array_map(intval(...), $categories),
+            );
+        } catch (RuntimeException|JsonException $exception) {
+            $this->components->error("Open Trivia DB export stopped: {$exception->getMessage()}");
+
+            return self::FAILURE;
+        }
 
         if ($summary['files'] === 0) {
             $this->components->error('No Open Trivia DB categories in the database yet: run php artisan quiz:sync-opentdb first.');

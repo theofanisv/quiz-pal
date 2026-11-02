@@ -49,9 +49,10 @@ class ExportOpenTdbQuestions
 
         foreach ($categories as $category) {
             $path = $directory.'/'.$this->fileName($category);
-            $questions = $this->existingQuestions($path);
+            $existingPath = $this->existingFile($directory, $category) ?? $path;
+            $questions = $this->existingQuestions($existingPath);
 
-            foreach ($category->questions()->get() as $question) {
+            foreach ($category->questions()->orderBy('id')->get() as $question) {
                 [$snapshot, $retranslate] = $this->mergeQuestion($question, $questions[$this->key($question->text_en)] ?? null);
 
                 $questions[$this->key($question->text_en)] = $snapshot;
@@ -62,6 +63,10 @@ class ExportOpenTdbQuestions
             $questions = array_values($questions);
 
             File::put($path, $this->encode($category, $questions));
+
+            if ($existingPath !== $path) {
+                File::delete($existingPath);
+            }
 
             $summary['files']++;
             $summary['questions'] += count($questions);
@@ -74,6 +79,18 @@ class ExportOpenTdbQuestions
     private function fileName(Category $category): string
     {
         return sprintf('%02d-%s.json', (int) $category->external_id, Str::slug($category->name_en));
+    }
+
+    /**
+     * The file already written for this category, found by its OpenTDB id so that a
+     * renamed category keeps its translations.
+     */
+    private function existingFile(string $directory, Category $category): ?string
+    {
+        $matches = glob(sprintf('%s/%02d-*.json', $directory, (int) $category->external_id)) ?: [];
+        sort($matches);
+
+        return $matches[0] ?? null;
     }
 
     private function key(string $text): string

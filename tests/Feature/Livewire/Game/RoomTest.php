@@ -157,7 +157,7 @@ describe('lobby', function () {
             ->assertSee('Question source')
             ->assertSee('Greek History')
             ->assertDontSee('Science: Computers')
-            ->assertDontSee('Not imported yet')
+            ->assertDontSee('Not available on this server yet')
             ->set('questionSource', 'opentdb')
             ->assertHasNoErrors()
             ->assertSee('Science: Computers')
@@ -175,7 +175,7 @@ describe('lobby', function () {
         Livewire::actingAs($room->admin, 'player')
             ->test(RoomPage::class, ['room' => $room])
             ->assertSee('Open Trivia DB')
-            ->assertSee('Not imported yet');
+            ->assertSee('Not available on this server yet');
     });
 
     it('shows the question source to the other players', function () {

@@ -4,7 +4,7 @@ namespace App\Enums;
 
 /**
  * Where a room draws its questions from: the bilingual bank bundled with the app,
- * or the English questions mirrored from Open Trivia DB by `quiz:sync-opentdb`.
+ * or the Open Trivia DB snapshot shipped in database/data/opentdb and translated in batches.
  */
 enum QuestionSource: string
 {

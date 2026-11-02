@@ -83,7 +83,7 @@ Importing the same file twice updates the existing rows instead of duplicating t
 
 A room can also play the multiple-choice questions of [Open Trivia DB](https://opentdb.com) ([CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)). They ship with the app as a snapshot in `database/data/opentdb/`, one file per OpenTDB category in the format above plus a `source`/`external_id` tag on the category and an attribution line. The seeder and `php artisan quiz:import-questions` load them together with the built-in bank.
 
-Questions that have not been translated yet have no `el` keys and are shown in English in both languages. Translating a category means adding the `el` keys to its file, importing it and committing. Refreshing the snapshot from OpenTDB is a developer task:
+Questions that have not been translated yet have no `el` keys and are shown in English in both languages. Translating a category means adding the `el` keys to its file, importing it and committing. Removing a question from a file does not delete it from installations that already imported it; delete the row by hand when a question has to go. Refreshing the snapshot from OpenTDB is a developer task:
 
 ```bash
 php artisan quiz:sync-opentdb       # pull OpenTDB into the local database; about 20 minutes, one request every 5 seconds

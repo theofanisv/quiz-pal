@@ -21,6 +21,8 @@ use InvalidArgumentException;
  */
 class ImportQuestions
 {
+    private const int MAX_TEXT_LENGTH = 500;
+
     /**
      * Import every *.json file in the directory, in file-name order.
      *
@@ -71,6 +73,7 @@ class ImportQuestions
     {
         $data = $this->parse($path);
         $source = $this->source($data['category'], $path);
+        $this->validateCategory($data['category'], $source, $path);
 
         return DB::transaction(function () use ($data, $path, $source): int {
             $externalId = $data['category']['external_id'] ?? null;
@@ -142,6 +145,28 @@ class ImportQuestions
     }
 
     /**
+     * Open Trivia DB files are identified by the OpenTDB category id, which the slug must carry.
+     *
+     * @param  CategoryData  $category
+     */
+    private function validateCategory(array $category, QuestionSource $source, string $path): void
+    {
+        if ($source !== QuestionSource::OpenTdb) {
+            return;
+        }
+
+        $externalId = $category['external_id'] ?? null;
+
+        if (! is_int($externalId) || $externalId < 1) {
+            throw new InvalidArgumentException("{$path}: an Open Trivia DB file needs a positive integer \"external_id\".");
+        }
+
+        if ($category['slug'] !== "opentdb-{$externalId}") {
+            throw new InvalidArgumentException("{$path}: the slug of Open Trivia DB category {$externalId} must be \"opentdb-{$externalId}\".");
+        }
+    }
+
+    /**
      * @param  array<string, mixed>  $question
      */
     private function validateQuestion(array $question, QuestionSource $source, string $path, int $index): void
@@ -157,6 +182,10 @@ class ImportQuestions
 
             if (! is_string($text) || trim($text) === '') {
                 throw $fail("missing {$locale} text");
+            }
+
+            if (mb_strlen($text) > self::MAX_TEXT_LENGTH) {
+                throw $fail("{$locale} text is longer than ".self::MAX_TEXT_LENGTH.' characters');
             }
 
             if (! is_array($answers) || count($answers) !== Question::ANSWER_COUNT) {
