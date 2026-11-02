@@ -23,7 +23,7 @@
                 <flux:input
                     wire:model="name"
                     :label="__('Your name')"
-                    :placeholder="__('e.g. Maria')"
+                    :placeholder="__('e.g. Theofanis')"
                     maxlength="20"
                     autocomplete="nickname"
                 />
