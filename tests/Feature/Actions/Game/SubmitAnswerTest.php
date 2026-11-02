@@ -38,6 +38,18 @@ it('scores a correct answer by how fast it came', function () {
         ->and($answer->choice)->toBe(2);
 });
 
+it('records how long the player took to answer', function () {
+    freezeTime();
+    [$room, $round] = openRound();
+    Player::factory()->for($room)->create();
+    travel(5)->seconds();
+
+    $answer = app(SubmitAnswer::class)->handle($round, $room->admin, 2);
+
+    expect($answer->elapsed_ms)->toBe(5000)
+        ->and($answer->fresh()->elapsed_ms)->toBe(5000);
+});
+
 it('gives no points for a wrong answer', function () {
     freezeTime();
     [$room, $round] = openRound();
