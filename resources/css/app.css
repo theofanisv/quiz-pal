@@ -172,9 +172,9 @@
     text-shadow: 0 0 12px color-mix(in oklab, currentColor 70%, transparent);
 }
 
-/* Conic countdown disc; --p is the remaining percentage (0-100). */
+/* Conic countdown disc; --p is the remaining percentage (0-100), --ring the colour. */
 @utility timer-ring {
-    background: conic-gradient(var(--color-neon-cyan) calc(var(--p) * 1%), var(--color-night-700) 0);
+    background: conic-gradient(var(--ring, var(--color-neon-cyan)) calc(var(--p) * 1%), var(--color-night-700) 0);
 }
 
 @layer components {
