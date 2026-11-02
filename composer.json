@@ -53,6 +53,10 @@
             "npm install",
             "npm run build"
         ],
+        "update-app": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash resources/scripts/bash/update.sh"
+        ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
             "@php artisan dev"

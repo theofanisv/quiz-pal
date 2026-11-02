@@ -13,6 +13,7 @@
 
 @fonts
 
+<meta name="reverb" content="{{ json_encode(config('broadcasting.connections.reverb.client')) }}">
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 @if ($appearance ?? true)
     @fluxAppearance

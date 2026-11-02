@@ -43,9 +43,11 @@ Open `.env` and check these values:
 | `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` | Where Redis listens. The defaults match a local server without a password |
 | `REVERB_APP_ID`, `REVERB_APP_KEY`, `REVERB_APP_SECRET` | Credentials shared by the app and the Reverb server. `php artisan reverb:install` generates random values; any random strings work |
 | `REVERB_HOST`, `REVERB_PORT`, `REVERB_SCHEME` | Where browsers connect for WebSockets. Locally `localhost`, `8080`, `http` |
-| `VITE_REVERB_*` | The same values exposed to the browser bundle |
+| `VITE_REVERB_*` | How the browser reaches Reverb (`APP_KEY`, `HOST`, `PORT`, `SCHEME`). The page passes them to the JavaScript on every request, so they may differ from the server-side `REVERB_*` values |
 
-Vite bakes the `VITE_*` values into the JavaScript bundle, so run `npm run build` (or keep `npm run dev` running) whenever you change them.
+The `VITE_REVERB_*` values are read by PHP (`config/broadcasting.php`) and written into a `<meta name="reverb">` tag, so the built
+JavaScript contains no environment values and the same `public/build` works in every environment. When the configuration is
+cached, run `php artisan optimize` after changing them.
 
 ### Run it
 
@@ -69,15 +71,14 @@ npm run dev          # or: npm run build
 Browsers on other devices must reach both the web server and Reverb through your computer's LAN address (for example `192.168.1.20`):
 
 1. In `.env` set `APP_URL=http://192.168.1.20:8000` and `REVERB_HOST=192.168.1.20`.
-2. Rebuild the assets: `npm run build`.
-3. Start the servers bound to all interfaces:
+2. Start the servers bound to all interfaces:
 
    ```bash
    php artisan serve --host=0.0.0.0
    php artisan reverb:start --host=0.0.0.0
    ```
 
-4. Create a room and scan the QR code with a phone.
+3. Create a room and scan the QR code with a phone.
 
 ## Running the tests
 
@@ -97,13 +98,14 @@ If the server has several PHP versions, call the one that serves the site explic
 
 ### Application
 
-1. **Build**: `composer install --no-dev --optimize-autoloader`, `npm ci && npm run build`.
+1. **Build**: `composer install --no-dev --optimize-autoloader`. The front-end is not built on the server: `public/build` is
+   built locally with `npm run build` and committed, so a checkout already contains it.
 2. **Environment**: set `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://your-domain`, `APP_LOCALE` (`el` or
    `en`), random `REVERB_APP_ID`, `REVERB_APP_KEY` and `REVERB_APP_SECRET`, `BROADCAST_CONNECTION=log` for now,
    `SESSION_DRIVER=redis`, `CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`, and `REDIS_PASSWORD` if the server's Redis
    requires one.
    Generate a fresh key with `php artisan key:generate --force` rather than copying a development key.
-3. **Browser-side Reverb values** (baked into the assets, so set them before `npm run build`):
+3. **Browser-side Reverb values** (read at request time; after changing them run `php artisan optimize`):
 
    ```dotenv
    VITE_REVERB_APP_KEY="${REVERB_APP_KEY}"
@@ -226,13 +228,21 @@ process takes both apps' live updates down. A separate process costs 30 to 50 MB
    player must appear on the first screen within a second or two; if it only shows up after about ten seconds, the
    WebSocket is not connected and the page is polling.
 
-After each deployment run `php artisan migrate --force`, then `php artisan optimize` and `php artisan reverb:restart`, so that new migrations are applied and Reverb picks up new code.
+To deploy a new version run `composer update-app` from the application root as the user that owns the files (on this
+kind of server: `php8.3 /usr/local/bin/composer update-app`). The script backs up the database to
+`storage/app/private/backups` (keeping the last 10), fetches and resets the checkout to the remote branch, installs the
+Composer dependencies, runs `php artisan migrate --force` and the question seeder, rebuilds the caches with
+`php artisan optimize` and runs `php artisan reverb:restart`, so that Reverb picks up the new code. It does not build the
+front-end: run `npm run build` locally and commit `public/build` before pushing, the update refuses to start when the
+incoming commit has no `public/build/manifest.json`. It also stops before touching anything when tracked files were
+modified on the server. The Reverb restart drops the players' live connections for a moment (they reconnect by
+themselves), so run it between games.
 
 ## Troubleshooting
 
 - **Players do not see each other's actions until they reload, or only after about ten seconds**: Reverb is not
   reachable. Check that the supervisor program is running, that `VITE_REVERB_HOST/PORT/SCHEME` match how the browser
-  reaches the site, that the assets were rebuilt after changing them, and that the `/app` proxy points at Reverb's port.
+  reaches the site, that `php artisan optimize` ran after changing them, and that the `/app` proxy points at Reverb's port.
   The page still polls every 10 seconds, so the game keeps working, only slower.
 - **The lobby shows "Live updates are unavailable" and Start game is disabled**: the application cannot reach
   Reverb's health check at `REVERB_SCHEME://REVERB_HOST:REVERB_PORT/up`. Check the port, use `127.0.0.1` rather than
@@ -241,7 +251,7 @@ After each deployment run `php artisan migrate --force`, then `php artisan optim
   failed broadcast is reported to the application log.
 - **curl handshake returns 404 or 500 but browsers work**: the test used HTTP/2. Add `--http1.1`.
 - **"Mixed content" errors in the browser console**: the site is served over HTTPS but `VITE_REVERB_SCHEME` is `http`.
-  Use `https` and port `443` through the reverse proxy, then rebuild the assets.
+  Use `https` and port `443` through the reverse proxy, then run `php artisan optimize`.
 - **SQLSTATE[HY000] [1045] Access denied** or **[2002] Connection refused** on every page: the `DB_*` values in `.env`
   do not match the MySQL user, or the configuration cache is stale. Fix `.env`, then `php artisan optimize`.
 - **Database is locked** (SQLite, local setups only): the SQLite file or its directory is not writable by the user
