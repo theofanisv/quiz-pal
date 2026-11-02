@@ -24,7 +24,7 @@
                         {{ match ($rank) { 0 => '🥇', 1 => '🥈', 2 => '🥉', default => $rank + 1 } }}
                     </span>
 
-                    <flux:avatar :name="$member->name" size="sm" />
+                    <x-game.player-avatar :player="$member" size="sm" />
 
                     <span class="flex-1 truncate font-medium">
                         {{ $member->name }}

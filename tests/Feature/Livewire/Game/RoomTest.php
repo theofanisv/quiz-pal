@@ -86,6 +86,7 @@ describe('lobby', function () {
             ->test(RoomPage::class, ['room' => $room])
             ->assertSee('Maria')
             ->assertSee('Nikos')
+            ->assertSeeHtml('data-player-color="'.$player->color->value.'"')
             ->assertSee(route('rooms.show', $room))
             ->assertSee('Ready! Tap to undo')
             ->assertSee('Waiting for Maria to start the game.')
@@ -287,6 +288,7 @@ describe('playing', function () {
             ->assertSeeInOrder(['Venus', 'Mars', 'Jupiter', 'Saturn'])
             ->assertSee('Time left')
             ->assertSee('Thinking…')
+            ->assertSeeHtml('data-player-color="'.$player->color->value.'"')
             ->assertDontSee('Next question');
     });
 
@@ -386,7 +388,7 @@ describe('playing', function () {
     it('shows the final results after the last round', function () {
         $room = Room::factory()->playing(1)->withAdmin('Maria')->create(['total_rounds' => 1]);
         $room->admin->update(['score' => 800]);
-        Player::factory()->for($room)->create(['name' => 'Nikos', 'score' => 1200]);
+        $nikos = Player::factory()->for($room)->create(['name' => 'Nikos', 'score' => 1200]);
         Round::factory()->for($room)->revealed()->create(['round_number' => 1]);
 
         Livewire::actingAs($room->admin, 'player')
@@ -395,6 +397,7 @@ describe('playing', function () {
             ->assertSee('Final results')
             ->assertSee('Nikos wins!')
             ->assertSeeInOrder(['Nikos', '1200', 'Maria', '800'])
+            ->assertSeeHtml('data-player-color="'.$nikos->color->value.'"')
             ->assertSee('Play again');
     });
 

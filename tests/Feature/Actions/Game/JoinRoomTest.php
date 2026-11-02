@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Game\JoinRoom;
+use App\Enums\PlayerColor;
 use App\Events\RoomUpdated;
 use App\Exceptions\GameException;
 use App\Models\Player;
@@ -22,6 +23,36 @@ it('adds the player to the room and tells the others', function () {
         ->and($player->room_id)->toBe($room->id)
         ->and($player->is_ready)->toBeFalse();
     Event::assertDispatched(RoomUpdated::class, fn (RoomUpdated $event) => $event->code === $room->code && $event->reason === 'player-joined');
+});
+
+it('gives each player the first free colour of the room', function () {
+    $room = Room::factory()->withAdmin()->create();
+
+    $player = app(JoinRoom::class)->handle($room, 'Nikos');
+
+    expect($room->admin->color)->toBe(PlayerColor::Violet)
+        ->and($player->color)->toBe(PlayerColor::Coral);
+});
+
+it('gives the twentieth player the last colour', function () {
+    $room = Room::factory()->create();
+    Player::factory()->for($room)->count(Room::MAX_PLAYERS - 1)->create();
+
+    $player = app(JoinRoom::class)->handle($room, 'Last');
+
+    expect($player->color)->toBe(PlayerColor::Steel)
+        ->and($room->players()->pluck('color')->unique())->toHaveCount(Room::MAX_PLAYERS);
+});
+
+it('reuses the colour of a removed player', function () {
+    $room = Room::factory()->withAdmin()->create();
+    $nikos = app(JoinRoom::class)->handle($room, 'Nikos');
+    app(JoinRoom::class)->handle($room, 'Anna');
+
+    $nikos->delete();
+    $petros = app(JoinRoom::class)->handle($room, 'Petros');
+
+    expect($petros->color)->toBe(PlayerColor::Coral);
 });
 
 it('rejects a name that another player already uses regardless of case', function () {

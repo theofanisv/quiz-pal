@@ -24,7 +24,7 @@
         <ul class="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-700">
             @foreach ($players as $member)
                 <li wire:key="player-{{ $member->id }}" class="flex items-center gap-3 py-2">
-                    <flux:avatar :name="$member->name" size="sm" />
+                    <x-game.player-avatar :player="$member" size="sm" />
 
                     <div class="flex min-w-0 flex-1 items-center gap-2">
                         <span class="truncate font-medium">{{ $member->name }}</span>

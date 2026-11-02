@@ -91,7 +91,7 @@
                     @endphp
 
                     <li wire:key="strip-{{ $member->id }}" class="flex items-center gap-3">
-                        <flux:avatar :name="$member->name" size="xs" />
+                        <x-game.player-avatar :player="$member" size="xs" />
 
                         <span class="flex-1 truncate">
                             {{ $member->name }}

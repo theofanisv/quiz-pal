@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PlayerColor;
 use Database\Factories\PlayerFactory;
 use Illuminate\Auth\Authenticatable as AuthenticatableTrait;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * An anonymous participant of a room, authenticated through the "player" session guard.
  */
-#[Fillable(['room_id', 'name', 'score', 'is_ready', 'is_connected', 'last_seen_at'])]
+#[Fillable(['room_id', 'name', 'color', 'score', 'is_ready', 'is_connected', 'last_seen_at'])]
 class Player extends Model implements Authenticatable
 {
     use AuthenticatableTrait;
@@ -25,11 +26,26 @@ class Player extends Model implements Authenticatable
     public const int MAX_NAME_LENGTH = 20;
 
     /**
+     * Every player gets the first colour nobody in the room uses, unless one was
+     * given explicitly. Done at insert time so batches of players (factories, tests)
+     * see the rows inserted before them.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Player $player): void {
+            $player->color ??= PlayerColor::firstFree(
+                static::query()->where('room_id', $player->room_id)->pluck('color'),
+            );
+        });
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
+            'color' => PlayerColor::class,
             'score' => 'integer',
             'is_ready' => 'boolean',
             'is_connected' => 'boolean',

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\PlayerColor;
 use App\Models\Player;
 use App\Models\Room;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -34,5 +35,10 @@ class PlayerFactory extends Factory
     public function disconnected(): static
     {
         return $this->state(fn (array $attributes): array => ['is_connected' => false]);
+    }
+
+    public function color(PlayerColor $color): static
+    {
+        return $this->state(fn (array $attributes): array => ['color' => $color]);
     }
 }
