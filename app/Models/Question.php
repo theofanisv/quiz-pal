@@ -35,6 +35,8 @@ class Question extends Model
             'difficulty' => 'integer',
             'reported_at' => 'datetime',
             'verified_at' => 'datetime',
+            'times_shown' => 'integer',
+            'last_shown_at' => 'datetime',
         ];
     }
 
@@ -80,6 +82,18 @@ class Question extends Model
     protected function inRotation(Builder $query): void
     {
         $query->where(fn (Builder $query) => $query->whereNull('reported_at')->orWhereColumn('verified_at', '>=', 'reported_at'));
+    }
+
+    /**
+     * The questions shown least often first; among equals, the one shown longest ago, so a category is used up
+     * before any question comes back. Questions never shown come in random order.
+     *
+     * @param  Builder<Question>  $query
+     */
+    #[Scope]
+    protected function leastShownFirst(Builder $query): void
+    {
+        $query->orderBy('times_shown')->orderBy('last_shown_at')->inRandomOrder();
     }
 
     /**

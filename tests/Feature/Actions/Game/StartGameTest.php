@@ -130,3 +130,44 @@ it('does not count questions that wait for review as available', function () {
 
     expect($room->fresh()->status)->toBe(RoomStatus::Lobby);
 });
+
+it('takes the questions shown least often', function () {
+    $room = Room::factory()->withAdmin()->create(['total_rounds' => 2]);
+    $room->admin->update(['is_ready' => true]);
+    $category = Category::factory()->create();
+    $unseen = Question::factory()->for($category)->count(2)->create();
+    Question::factory()->for($category)->shown(3)->count(2)->create();
+    $room->categories()->attach($category);
+
+    app(StartGame::class)->handle($room, $room->admin);
+
+    expect($room->rounds()->pluck('question_id')->sort()->values()->all())->toBe($unseen->pluck('id')->sort()->values()->all());
+});
+
+it('takes the question shown longest ago when questions were shown equally often', function () {
+    $room = Room::factory()->withAdmin()->create(['total_rounds' => 1]);
+    $room->admin->update(['is_ready' => true]);
+    $category = Category::factory()->create();
+    $shownLongAgo = Question::factory()->for($category)->shown(1, now()->subDay())->create();
+    Question::factory()->for($category)->shown(1, now()->subHour())->create();
+    $room->categories()->attach($category);
+
+    app(StartGame::class)->handle($room, $room->admin);
+
+    expect($room->rounds()->pluck('question_id')->all())->toBe([$shownLongAgo->id]);
+});
+
+it('counts only the first question as shown when the game starts', function () {
+    freezeSecond();
+    $room = Room::factory()->withAdmin()->create(['total_rounds' => 2]);
+    $room->admin->update(['is_ready' => true]);
+    $room->categories()->attach(Category::factory()->has(Question::factory()->count(2))->create());
+
+    app(StartGame::class)->handle($room, $room->admin);
+
+    [$first, $second] = $room->rounds()->orderBy('round_number')->with('question')->get()->map->question;
+    expect($first->times_shown)->toBe(1)
+        ->and($first->last_shown_at->equalTo(now()->addSeconds(3)))->toBeTrue();
+    expect($second->times_shown)->toBe(0)
+        ->and($second->last_shown_at)->toBeNull();
+});

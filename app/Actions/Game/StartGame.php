@@ -71,8 +71,9 @@ class StartGame
     }
 
     /**
-     * Spread the questions evenly over the selected categories, then shuffle them.
-     * Questions a player reported are left out until someone reviews them.
+     * Spread the questions evenly over the selected categories, taking the least-shown questions of each
+     * category first, then shuffle them. When the rounds do not divide evenly, random categories get the
+     * extra questions. Questions a player reported are left out until someone reviews them.
      *
      * @return array<int, int>
      *
@@ -86,11 +87,11 @@ class StartGame
         $idsPerCategory = Question::query()
             ->whereIn('category_id', $categoryIds)
             ->inRotation()
-            ->inRandomOrder()
+            ->leastShownFirst()
             ->get(['id', 'category_id'])
             ->groupBy('category_id')
             ->map(fn (Collection $questions): Collection => $questions->pluck('id'))
-            ->values();
+            ->shuffle();
 
         $available = $idsPerCategory->sum(fn (Collection $ids): int => $ids->count());
 

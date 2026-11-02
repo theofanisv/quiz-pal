@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Category;
 use App\Models\Question;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -50,6 +51,17 @@ class QuestionFactory extends Factory
         return $this->state(fn (array $attributes): array => [
             'reported_at' => now()->subDay(),
             'verified_at' => now()->subHour(),
+        ]);
+    }
+
+    /**
+     * A question games have already shown, last shown an hour ago unless given.
+     */
+    public function shown(int $times = 1, ?CarbonInterface $lastShownAt = null): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'times_shown' => $times,
+            'last_shown_at' => $lastShownAt ?? now()->subHour(),
         ]);
     }
 
