@@ -212,7 +212,7 @@ process takes both apps' live updates down. A separate process costs 30 to 50 MB
    player must appear on the first screen within a second or two; if it only shows up after about ten seconds, the
    WebSocket is not connected and the page is polling.
 
-After each deployment run `php artisan optimize` and `php artisan reverb:restart` so Reverb picks up new code.
+After each deployment run `php artisan migrate --force`, then `php artisan optimize` and `php artisan reverb:restart`, so that new migrations are applied and Reverb picks up new code.
 
 ## Troubleshooting
 
