@@ -22,6 +22,12 @@ class Game extends Model
     use HasFactory;
 
     /**
+     * Millisecond precision, like the rounds: the finish is when the admin left the last answer,
+     * which the game history reads as that round's pause.
+     */
+    protected $dateFormat = Round::DATE_FORMAT;
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

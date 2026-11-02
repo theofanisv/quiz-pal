@@ -10,6 +10,7 @@ use App\Models\Round;
 use Illuminate\Support\Facades\Event;
 
 use function Pest\Laravel\freezeSecond;
+use function Pest\Laravel\travelTo;
 
 it('schedules the next round a few seconds ahead after the current one is revealed', function () {
     freezeSecond();
@@ -37,6 +38,17 @@ it('finishes the room and its game after the last round is revealed', function (
     expect($room->fresh()->status)->toBe(RoomStatus::Finished)
         ->and($round->game->fresh()->finished_at->equalTo(now()))->toBeTrue();
     Event::assertDispatched(RoomUpdated::class, fn (RoomUpdated $event) => $event->reason === 'finished');
+});
+
+it('records the moment the game finished to the millisecond', function () {
+    travelTo('2026-11-02 20:23:34.437');
+    $room = Room::factory()->playing(1)->withAdmin()->create(['total_rounds' => 1]);
+    $round = Round::factory()->forRoom($room)->revealed()->create(['round_number' => 1]);
+    Event::fake([RoomUpdated::class]);
+
+    app(AdvanceRound::class)->handle($room, $room->admin);
+
+    expect($round->game->fresh()->finished_at->format('Y-m-d H:i:s.v'))->toBe('2026-11-02 20:23:34.437');
 });
 
 it('refuses to advance while the current round is still open', function () {
