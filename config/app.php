@@ -80,6 +80,13 @@ return [
 
     'locale' => env('APP_LOCALE', 'el'),
 
+    /*
+    | App::setLocale() overwrites "locale" while a request runs, so the language the app
+    | starts in is kept here too for the code that needs the configured default.
+    */
+
+    'default_locale' => env('APP_LOCALE', 'el'),
+
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),

@@ -13,7 +13,7 @@
 
         <div class="mx-auto flex min-h-svh w-full max-w-2xl flex-col gap-6 px-4 py-5 sm:px-6">
             <header class="flex items-center justify-between gap-4">
-                <a href="{{ route('home') }}" class="flex items-center text-ink">
+                <a href="{{ \App\Enums\Locale::current()->homeUrl() }}" data-test="home-link" class="flex items-center text-ink">
                     <x-game.logo />
                 </a>
 

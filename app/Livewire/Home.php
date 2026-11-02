@@ -3,14 +3,13 @@
 namespace App\Livewire;
 
 use App\Actions\Game\CreateRoom;
+use App\Enums\Locale;
 use App\Models\Room;
 use App\Support\RoomCode;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
-use Livewire\Attributes\Layout;
 use Livewire\Component;
 
-#[Layout('layouts::game')]
 class Home extends Component
 {
     public string $name = '';
@@ -49,6 +48,45 @@ class Home extends Component
 
     public function render(): View
     {
-        return view('livewire.home')->title(__('Play'));
+        $description = __('Create a room, share the link or QR code, and play together on your phones.');
+        $homeUrl = Locale::current()->homeUrl();
+
+        return view('livewire.home')
+            ->title(__('Quiz night with friends'))
+            ->layout('layouts::game', [
+                'description' => $description,
+                'canonical' => $homeUrl,
+                'alternates' => $this->homeUrls(),
+                'structuredData' => [
+                    '@context' => 'https://schema.org',
+                    '@type' => 'WebApplication',
+                    'name' => config('app.name'),
+                    'url' => $homeUrl,
+                    'description' => $description,
+                    'applicationCategory' => 'GameApplication',
+                    'operatingSystem' => 'Any',
+                    'browserRequirements' => 'Requires JavaScript',
+                    'inLanguage' => array_map(fn (Locale $locale): string => $locale->value, Locale::cases()),
+                    'isAccessibleForFree' => true,
+                    'offers' => ['@type' => 'Offer', 'price' => '0', 'priceCurrency' => 'EUR'],
+                    'image' => asset('og-image.png'),
+                ],
+            ]);
+    }
+
+    /**
+     * The home page of every language, keyed by language code, for the hreflang links.
+     *
+     * @return array<string, string>
+     */
+    private function homeUrls(): array
+    {
+        $urls = [];
+
+        foreach (Locale::cases() as $locale) {
+            $urls[$locale->value] = $locale->homeUrl();
+        }
+
+        return $urls;
     }
 }

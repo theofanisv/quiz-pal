@@ -18,6 +18,7 @@
     "No room was found with that code.": "Δεν βρέθηκε δωμάτιο με αυτόν τον κωδικό.",
     "Room": "Δωμάτιο",
     "Room :code": "Δωμάτιο :code",
+    "Your friend invited you to a quiz night. Open the link, pick a name and play.": "Ένας φίλος σε κάλεσε σε βραδιά κουίζ. Άνοιξε τον σύνδεσμο, διάλεξε όνομα και παίξε.",
     "e.g. Nikos": "π.χ. Νίκος",
     "{0} Nobody is here yet.|{1} :count player is already here.|[2,*] :count players are already here.": "{0} Δεν είναι κανείς εδώ ακόμα.|{1} :count παίκτης είναι ήδη εδώ.|[2,*] :count παίκτες είναι ήδη εδώ.",
     "A game is in progress": "Υπάρχει παιχνίδι σε εξέλιξη",

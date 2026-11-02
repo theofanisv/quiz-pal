@@ -45,3 +45,9 @@ test('users can logout', function () {
 
     $this->assertGuest();
 });
+
+test('the login page is kept out of search results', function () {
+    $response = $this->get(route('login'));
+
+    $response->assertSee('<meta name="robots" content="noindex">', false);
+});

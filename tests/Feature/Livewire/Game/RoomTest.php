@@ -34,6 +34,17 @@ describe('joining', function () {
         get('/room/ZZZZ')->assertNotFound();
     });
 
+    it('keeps the room page out of search results but describes the invite for link previews', function () {
+        $room = Room::factory()->withAdmin()->create(['code' => 'KXWP']);
+
+        get(route('rooms.show', $room))
+            ->assertSee('<meta name="robots" content="noindex, nofollow">', false)
+            ->assertSee('<meta property="og:url" content="'.route('rooms.show', $room).'">', false)
+            ->assertSee('<meta name="description" content="Your friend invited you to a quiz night. Open the link, pick a name and play.">', false)
+            ->assertDontSee('rel="canonical"', false)
+            ->assertSee('href="'.route('locale.switch', 'el').'"', false);
+    });
+
     it('registers the visitor as a player, signs them in and reloads the room', function () {
         $room = Room::factory()->withAdmin()->create();
 

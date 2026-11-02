@@ -22,11 +22,13 @@ it('rejects a language the app does not support', function () {
 });
 
 it('renders the interface in greek once chosen', function () {
+    $room = Room::factory()->withAdmin()->create();
+
     withSession(['locale' => 'el'])
-        ->get(route('home'))
+        ->get(route('rooms.show', $room))
         ->assertOk()
-        ->assertSee('Βραδιά κουίζ με φίλους')
-        ->assertDontSee('Quiz night with friends');
+        ->assertSee('Το όνομά σου')
+        ->assertDontSee('Your name');
 });
 
 it('shows the question in greek to a greek-speaking player', function () {

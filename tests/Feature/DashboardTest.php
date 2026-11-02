@@ -14,3 +14,11 @@ test('authenticated users can visit the dashboard', function () {
     $response = $this->get(route('dashboard'));
     $response->assertOk();
 });
+
+test('the dashboard is kept out of search results', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $response = $this->get(route('dashboard'));
+    $response->assertSee('<meta name="robots" content="noindex">', false);
+});

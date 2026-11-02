@@ -25,14 +25,12 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 /**
  * The single page of a room: join form, lobby, play and results.
  * State lives in the database; every broadcast simply re-renders this component.
  */
-#[Layout('layouts::game')]
 class Room extends Component
 {
     public RoomModel $room;
@@ -225,7 +223,12 @@ class Room extends Component
             'openTdbAvailable' => Category::query()->forSource(QuestionSource::OpenTdb)->whereHas('questions')->exists(),
             'shareUrl' => route('rooms.show', $this->room),
             'liveUpdatesAvailable' => ! $this->room->isInLobby() || $liveUpdates->isAvailable(),
-        ])->title(__('Room :code', ['code' => $this->room->code]));
+        ])
+            ->title(__('Room :code', ['code' => $this->room->code]))
+            ->layout('layouts::game', [
+                'description' => __('Your friend invited you to a quiz night. Open the link, pick a name and play.'),
+                'robots' => 'noindex, nofollow',
+            ]);
     }
 
     private function fillSettings(): void
