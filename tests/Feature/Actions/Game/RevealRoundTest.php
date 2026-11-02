@@ -27,6 +27,17 @@ it('adds each answer\'s points to its player only once', function () {
         ->and($room->admin->fresh()->score)->toBe(0);
 });
 
+it('records how many players were connected when the round closed', function () {
+    $room = Room::factory()->playing()->withAdmin()->create();
+    $round = Round::factory()->forRoom($room)->started()->create();
+    Player::factory()->for($room)->create();
+    Player::factory()->for($room)->disconnected()->create();
+
+    app(RevealRound::class)->handle($round);
+
+    expect($round->fresh()->players_present)->toBe(2);
+});
+
 it('adds the points even when another answer is saved during the reveal', function () {
     // Production runs SQLite in WAL mode, where a second connection can commit while the reveal is in progress.
     $path = tempnam(sys_get_temp_dir(), 'quizpal-');

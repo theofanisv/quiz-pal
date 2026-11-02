@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['game_id', 'round_number', 'question_id', 'answer_order', 'started_at', 'ends_at', 'revealed_at'])]
+#[Fillable(['game_id', 'round_number', 'question_id', 'answer_order', 'started_at', 'ends_at', 'revealed_at', 'players_present'])]
 class Round extends Model
 {
     /** @use HasFactory<RoundFactory> */
@@ -46,6 +46,7 @@ class Round extends Model
             'started_at' => 'datetime',
             'ends_at' => 'datetime',
             'revealed_at' => 'datetime',
+            'players_present' => 'integer',
         ];
     }
 

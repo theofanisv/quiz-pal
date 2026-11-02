@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 it('moves the rounds of every room that played into a game with the room settings', function () {
-    Artisan::call('migrate:rollback', ['--step' => 1]);
+    $migrationsSinceGames = DB::table('migrations')->where('migration', '>=', '2026_11_02_195921')->count();
+    Artisan::call('migrate:rollback', ['--step' => $migrationsSinceGames]);
 
     try {
         $finished = Room::factory()->finished()->create(['question_source' => QuestionSource::OpenTdb, 'total_rounds' => 2, 'seconds_per_question' => 15]);
@@ -76,8 +77,10 @@ it('rolls back to the latest game of each room and drops the history the old tab
     Answer::factory()->for($kept)->for($player)->create();
     Answer::factory()->for($orphanRound)->create(['player_id' => null]);
 
+    $migrationsSinceGames = DB::table('migrations')->where('migration', '>=', '2026_11_02_195921')->count();
+
     try {
-        Artisan::call('migrate:rollback', ['--step' => 1]);
+        Artisan::call('migrate:rollback', ['--step' => $migrationsSinceGames]);
 
         expect(Schema::hasTable('games'))->toBeFalse()
             ->and(Schema::hasColumn('rounds', 'game_id'))->toBeFalse()

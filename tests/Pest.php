@@ -1,6 +1,11 @@
 <?php
 
+use App\Models\Answer;
+use App\Models\Game;
+use App\Models\Question;
+use App\Models\Round;
 use App\Support\RemovedOpenTdbQuestions;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -61,4 +66,49 @@ function useRemovedOpenTdbQuestions(array $questions): void
     file_put_contents($path, json_encode(['questions' => $questions], JSON_THROW_ON_ERROR));
 
     app()->instance(RemovedOpenTdbQuestions::class, new RemovedOpenTdbQuestions($path));
+}
+
+/**
+ * Record a game in the history: each entry is one round, in order. The answer shows 10 seconds after the question
+ * and stays on screen for `pause` seconds until the admin moves on. Answers are [choice, points] pairs to questions
+ * whose correct answer is the first; `present` defaults to the number of answers.
+ *
+ * @param  array<int, array{question?: Question, pause?: int, present?: int|null, answers?: array<int, array{0: int, 1: int}>, revealed?: bool}>  $rounds
+ */
+function playRecordedGame(array $rounds, bool $finished = true): Game
+{
+    $game = Game::factory()->create(['total_rounds' => count($rounds)]);
+    $startedAt = CarbonImmutable::parse('2026-11-01 20:00:00');
+    $advancedAt = $startedAt;
+
+    foreach (array_values($rounds) as $index => $spec) {
+        $question = $spec['question'] ?? Question::factory()->correctAt(0)->create();
+        $answers = $spec['answers'] ?? [[0, 750], [0, 750]];
+        $revealedAt = $startedAt->addSeconds(10);
+
+        $round = Round::factory()->for($game)->for($question)->create([
+            'round_number' => $index + 1,
+            'started_at' => $startedAt,
+            'ends_at' => $startedAt->addSeconds(20),
+            'revealed_at' => ($spec['revealed'] ?? true) ? $revealedAt : null,
+            'players_present' => array_key_exists('present', $spec) ? $spec['present'] : count($answers),
+        ]);
+
+        foreach ($answers as [$choice, $points]) {
+            Answer::factory()->for($round)->create([
+                'choice' => $choice,
+                'is_correct' => $question->isCorrect($choice),
+                'points' => $points,
+            ]);
+        }
+
+        $advancedAt = $revealedAt->addSeconds($spec['pause'] ?? 10);
+        $startedAt = $advancedAt->addSeconds(Round::START_DELAY_SECONDS);
+    }
+
+    if ($finished) {
+        $game->update(['finished_at' => $advancedAt]);
+    }
+
+    return $game;
 }

@@ -13,7 +13,8 @@ class RevealRound
     use BroadcastsRoomUpdates;
 
     /**
-     * Close the round and add the round points to the players' scores.
+     * Close the round, note how many players were connected at that moment (the game history
+     * compares it with the answers), and add the round points to the players' scores.
      * Safe to call concurrently: only the first caller reveals, the rest get false.
      *
      * The answers are read before the transaction starts on purpose. SQLite opens a
@@ -27,7 +28,10 @@ class RevealRound
         $revealed = Round::query()
             ->whereKey($round->id)
             ->whereNull('revealed_at')
-            ->update(['revealed_at' => now()->format(Round::DATE_FORMAT)]);
+            ->update([
+                'revealed_at' => now()->format(Round::DATE_FORMAT),
+                'players_present' => $round->game->room?->connectedPlayers()->count(),
+            ]);
 
         if ($revealed === 0) {
             return false;
