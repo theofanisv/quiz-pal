@@ -9,6 +9,7 @@ use App\Models\Room;
 use App\Models\Round;
 use Illuminate\Support\Facades\Event;
 
+use function Pest\Laravel\freezeSecond;
 use function Pest\Laravel\freezeTime;
 use function Pest\Laravel\travel;
 
@@ -36,6 +37,18 @@ it('scores a correct answer by how fast it came', function () {
     expect($answer->is_correct)->toBeTrue()
         ->and($answer->points)->toBe(875)
         ->and($answer->choice)->toBe(2);
+});
+
+it('records how long the player took to answer', function () {
+    freezeSecond();
+    [$room, $round] = openRound();
+    Player::factory()->for($room)->create();
+    travel(5)->seconds();
+
+    $answer = app(SubmitAnswer::class)->handle($round, $room->admin, 2);
+
+    expect($answer->elapsed_ms)->toBe(5000)
+        ->and($answer->fresh()->elapsed_ms)->toBe(5000);
 });
 
 it('gives no points for a wrong answer', function () {

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['round_id', 'player_id', 'choice', 'is_correct', 'points', 'answered_at'])]
+#[Fillable(['round_id', 'player_id', 'choice', 'is_correct', 'points', 'elapsed_ms', 'answered_at'])]
 class Answer extends Model
 {
     /** @use HasFactory<AnswerFactory> */
@@ -28,6 +28,7 @@ class Answer extends Model
             'choice' => 'integer',
             'is_correct' => 'boolean',
             'points' => 'integer',
+            'elapsed_ms' => 'integer',
             'answered_at' => 'datetime',
         ];
     }

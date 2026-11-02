@@ -23,6 +23,7 @@ class AnswerFactory extends Factory
             'choice' => 0,
             'is_correct' => false,
             'points' => 0,
+            'elapsed_ms' => 0,
             'answered_at' => now(),
         ];
     }

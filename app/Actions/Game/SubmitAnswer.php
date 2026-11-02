@@ -61,6 +61,7 @@ class SubmitAnswer
                 'choice' => $choice,
                 'is_correct' => $isCorrect,
                 'points' => Scoring::points($isCorrect, $elapsedMs, $limitMs),
+                'elapsed_ms' => $elapsedMs,
                 'answered_at' => $answeredAt,
             ]);
         } catch (UniqueConstraintViolationException) {

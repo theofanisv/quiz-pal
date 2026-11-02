@@ -101,6 +101,9 @@
                         </span>
 
                         @if ($revealed)
+                            @if ($memberAnswer?->elapsed_ms !== null)
+                                <span class="text-xs text-zinc-500 tabular-nums dark:text-zinc-400">{{ __(':seconds s', ['seconds' => number_format($memberAnswer->elapsed_ms / 1000, 1)]) }}</span>
+                            @endif
                             @if ($memberAnswer?->points)
                                 <span class="text-sm font-medium text-green-600">+{{ $memberAnswer->points }}</span>
                             @endif

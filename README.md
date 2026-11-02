@@ -25,7 +25,7 @@ The app and the whole question bank are available in **English and Greek**; ever
 
 ## Tech stack
 
-- [Laravel 13](https://laravel.com) (PHP 8.3) with SQLite
+- [Laravel 13](https://laravel.com) (PHP 8.3) with MySQL in production, SQLite for local development and the tests, and Redis for sessions, cache and the queue
 - [Livewire 4](https://livewire.laravel.com) and [Flux UI](https://fluxui.dev) for the interface, Tailwind CSS 4 for styling
 - [Laravel Reverb](https://reverb.laravel.com) and Laravel Echo for real-time events
 - Pest 4 for tests, Larastan (PHPStan level 7) and Laravel Pint for code quality
@@ -48,7 +48,7 @@ Key places:
 | `database/data/questions/*.json` | The question bank, one file per category |
 | `lang/el.json`, `lang/el/validation.php` | Greek translations of the interface |
 
-Players are anonymous. A dedicated `player` session guard identifies the visitor's player record, which also lets Reverb authorize them on the room's presence channel.
+Players are anonymous. A dedicated `player` session guard identifies the visitor's player record, which also lets Reverb authorize them on the room's presence channel. Sessions are stored in Redis rather than in the database, so the per-request session writes never compete with game writes.
 
 ## Questions
 
