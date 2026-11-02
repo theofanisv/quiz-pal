@@ -2,12 +2,14 @@
 
 ## Requirements
 
-- PHP 8.3 or newer with the `pdo_sqlite`, `sqlite3`, `mbstring`, `xml`, `xmlwriter`, `curl` and `pcntl` extensions
+- PHP 8.3 or newer with the `pdo_mysql`, `pdo_sqlite`, `sqlite3`, `mbstring`, `xml`, `xmlwriter`, `curl` and `pcntl` extensions
+- MySQL 8 for production
 - Composer 2
 - Node.js 22 or newer with npm
 - Git
 
-No database server is needed: QuizPal stores everything in a SQLite file.
+Locally QuizPal uses a SQLite file by default and the tests use SQLite in memory, so no database server is needed to
+develop. Production runs on MySQL; to use MySQL locally as well, set the `DB_*` values described below.
 
 ## Local setup
 
@@ -33,6 +35,7 @@ Open `.env` and check these values:
 | --- | --- |
 | `APP_URL` | The URL you open in the browser (the share links and QR codes are built from it) |
 | `APP_LOCALE` | Default interface language: `el` (Greek) or `en` (English). Players can switch at any time |
+| `DB_CONNECTION` | `sqlite` (the default) keeps everything in `database/database.sqlite`. For MySQL set `mysql` and fill in `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME` and `DB_PASSWORD`; the database must exist before `php artisan migrate` runs |
 | `REVERB_APP_ID`, `REVERB_APP_KEY`, `REVERB_APP_SECRET` | Credentials shared by the app and the Reverb server. `php artisan reverb:install` generates random values; any random strings work |
 | `REVERB_HOST`, `REVERB_PORT`, `REVERB_SCHEME` | Where browsers connect for WebSockets. Locally `localhost`, `8080`, `http` |
 | `VITE_REVERB_*` | The same values exposed to the browser bundle |
@@ -103,11 +106,23 @@ If the server has several PHP versions, call the one that serves the site explic
 
    Browsers connect to `wss://your-domain/app/...` and the web server proxies that path to Reverb, so these values
    never change when Reverb's own port changes.
-4. **Database**: `touch database/database.sqlite`, make the `database/` directory writable by the web server user,
-   then `php artisan migrate --force` and `php artisan db:seed --class=QuestionSeeder --force`.
+4. **Database**: production runs on MySQL. Create a database and a user that owns only that database. Use `utf8mb4`,
+   the question bank contains Greek text:
+
+   ```sql
+   CREATE DATABASE quizpal CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   CREATE USER 'quizpal'@'localhost' IDENTIFIED BY '<random password>';
+   GRANT ALL PRIVILEGES ON quizpal.* TO 'quizpal'@'localhost';
+   ```
+
+   Point `.env` at it with `DB_CONNECTION=mysql`, `DB_HOST=127.0.0.1`, `DB_PORT=3306`, `DB_DATABASE`, `DB_USERNAME` and
+   `DB_PASSWORD` (`.env.example` ships with `DB_CONNECTION=sqlite`, so set it explicitly), then
+   `php artisan migrate --force` and `php artisan db:seed --class=QuestionSeeder --force`.
+
+   An installation that ran on SQLite before (until November 2026) is switched the same way: point `.env` at MySQL,
+   migrate, seed, then `php artisan optimize`. The old `database/database.sqlite` is left alone; nothing is copied from it.
 5. **Cache**: `php artisan optimize`. Run it again after every change to `.env`, because the configuration is cached.
-6. **Permissions**: the application folder, `storage/`, `bootstrap/cache/` and `database/` must be writable by the user
-   PHP-FPM runs as. Keep `.env` readable only by that user.
+6. **Permissions**: `storage/` and `bootstrap/cache/` must be writable by the user PHP-FPM runs as. Keep `.env` readable only by that user.
 7. **Scheduler**: add a cron entry so idle rooms get cleaned up every day:
 
    ```cron
@@ -212,4 +227,7 @@ After each deployment run `php artisan optimize` and `php artisan reverb:restart
 - **curl handshake returns 404 or 500 but browsers work**: the test used HTTP/2. Add `--http1.1`.
 - **"Mixed content" errors in the browser console**: the site is served over HTTPS but `VITE_REVERB_SCHEME` is `http`.
   Use `https` and port `443` through the reverse proxy, then rebuild the assets.
-- **Database is locked**: the SQLite file or its directory is not writable by the web server user.
+- **SQLSTATE[HY000] [1045] Access denied** or **[2002] Connection refused** on every page: the `DB_*` values in `.env`
+  do not match the MySQL user, or the configuration cache is stale. Fix `.env`, then `php artisan optimize`.
+- **Database is locked** (SQLite, local setups only): the SQLite file or its directory is not writable by the user
+  running PHP.
